@@ -24,7 +24,7 @@
 </head>
 <body class="min-h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 selection:bg-brand-500 selection:text-white">
 
-  <!-- Header del Cliente -->
+  <!-- Header del Cliente con Botón de Wi-Fi -->
   <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3">
     <div class="max-w-md mx-auto flex items-center justify-between">
       <div class="flex items-center gap-2.5">
@@ -33,13 +33,16 @@
         </div>
         <div>
           <h1 class="font-bold text-base leading-tight text-white">Gourmet<span class="text-brand-500">Tap</span></h1>
-          <p class="text-[10px] text-slate-400">Menú y Pedidos</p>
+          <p class="text-[10px] text-slate-400">Mesa <span id="header-table-num">4</span></p>
         </div>
       </div>
-      <!-- Indicador de Mesa -->
-      <div class="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-        <i class="fa-solid fa-chair text-brand-500"></i>
-        <span>Mesa <span id="header-table-num">4</span></span>
+      
+      <!-- Contenedor Derecho: Botón Wi-Fi e Indicador de Mesa -->
+      <div class="flex items-center gap-2">
+        <button onclick="toggleWifiModal(true)" class="bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+          <i class="fa-solid fa-wifi"></i>
+          <span>Wi-Fi</span>
+        </button>
       </div>
     </div>
   </header>
@@ -93,7 +96,7 @@
     </div>
   </div>
 
-  <!-- Modal del Carrito / Pedido (Diseño adaptado para móvil) -->
+  <!-- Modal del Carrito / Pedido -->
   <div id="cart-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-end justify-center opacity-0 pointer-events-none transition-opacity duration-300">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-t-3xl p-5 shadow-2xl transform translate-y-full transition-transform duration-300 max-h-[85vh] flex flex-col">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
@@ -118,6 +121,38 @@
           <i class="fa-solid fa-paper-plane"></i> Confirmar y Enviar a Cocina
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE INFORMACIÓN WI-FI -->
+  <div id="wifi-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-slate-900 border border-slate-800 max-w-sm w-full rounded-3xl p-6 shadow-2xl text-center relative">
+      
+      <button onclick="toggleWifiModal(false)" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto mb-3 text-2xl">
+        <i class="fa-solid fa-wifi"></i>
+      </div>
+
+      <h3 class="text-base font-bold text-white mb-1">Internet Gratis para Clientes</h3>
+      <p class="text-xs text-slate-400 mb-4">Conéctate a nuestra red para navegar y pedir sin consumir tus datos.</p>
+
+      <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-left space-y-2 mb-5">
+        <div>
+          <span class="text-[10px] uppercase font-semibold text-slate-500">Nombre de Red (SSID):</span>
+          <p id="wifi-name" class="text-sm font-bold text-white select-all">Apolo</p>
+        </div>
+        <div>
+          <span class="text-[10px] uppercase font-semibold text-slate-500">Contraseña:</span>
+          <p id="wifi-pass" class="text-sm font-bold text-emerald-400 select-all">TuContraseñaAqui</p>
+        </div>
+      </div>
+
+      <button onclick="toggleWifiModal(false)" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
+        Entendido, ¡gracias!
+      </button>
     </div>
   </div>
 
@@ -161,6 +196,16 @@
       updateCartUI();
     });
 
+    // Función para abrir/cerrar el modal de Wi-Fi
+    function toggleWifiModal(open) {
+      const modal = document.getElementById('wifi-modal');
+      if (open) {
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+      } else {
+        modal.classList.add('opacity-0', 'pointer-events-none');
+      }
+    }
+
     function renderProducts(category) {
       const container = document.getElementById('products-grid');
       container.innerHTML = '';
@@ -174,7 +219,7 @@
           <div class="flex-1 flex flex-col justify-between">
             <div>
               <h4 class="font-bold text-white text-xs leading-snug mb-0.5">${product.name}</h4>
-              <p class="text-[11px] text-slate-400 line-clamp-2">${product.description}</p>
+              <p class="text-[11px] text-slate-400 line-clear">${product.description}</p>
             </div>
             <div class="flex items-center justify-between mt-1.5">
               <span class="text-sm font-extrabold text-brand-400">$${product.price.toFixed(2)}</span>
