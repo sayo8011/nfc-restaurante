@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gourmet Tap - Menú NFC & Control de Cocina</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white bg-slate-950 text-slate-100">
+
+  <!-- Top Bar / Switcher -->
+  <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <i class="fa-solid fa-wifi text-white text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight tracking-tight text-white flex items-center gap-2">
+            Gourmet<span class="text-brand-500">Tap</span>
+            <span class="text-[10px] uppercase font-semibold bg-brand-500/10 text-brand-400 px-2 py-0.5 rounded-full border border-brand-500/20">NFC Demo</span>
+          </h1>
+          <p class="text-xs text-slate-400 hidden sm:block">Sistema de Pedidos por Contacto</p>
+        </div>
+      </div>
+
+      <!-- View Switcher Tabs -->
+      <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 shadow-inner">
+        <button id="btn-view-client" onclick="switchView('client')" class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-semibold transition-all duration-200 bg-brand-500 text-white shadow-md">
+          <i class="fa-solid fa-mobile-screen"></i>
+          <span>Menú Cliente</span>
+        </button>
+        <button id="btn-view-kitchen" onclick="switchView('kitchen')" class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-semibold transition-all duration-200 text-slate-400 hover:text-slate-200">
+          <i class="fa-solid fa-utensils"></i>
+          <span>Panel Cocina</span>
+          <span id="kitchen-badge" class="hidden bg-brand-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">0</span>
+        </button>
+      </div>
+
+      <!-- Info Modal Trigger -->
+      <button onclick="toggleNfcInfoModal(true)" class="text-xs text-slate-400 hover:text-brand-400 flex items-center gap-1.5 bg-slate-800/60 hover:bg-slate-800 px-3 py-2 rounded-lg border border-slate-700/50 transition">
+        <i class="fa-solid fa-circle-info text-brand-500"></i>
+        <span class="hidden md:inline">¿Cómo programar esta URL en el chip NFC?</span>
+        <span class="md:hidden">Info NFC</span>
+      </button>
+
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 overflow-y-auto relative">
+
+    <!-- ========================================== -->
+    <!-- VIEW 1: VISTA DE CLIENTE (MENU DIGITAL)     -->
+    <!-- ========================================== -->
+    <section id="view-client" class="max-w-md mx-auto px-4 py-6 pb-28 min-h-full">
+      
+      <!-- Banner de Bienvenida -->
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-800 p-5 mb-6 shadow-xl">
+        <div class="absolute -right-6 -bottom-6 text-slate-800/40 text-8xl pointer-events-none">
+          <i class="fa-solid fa-burger"></i>
+        </div>
+        <div class="relative z-10">
+          <div class="inline-flex items-center gap-1.5 bg-brand-500/10 border border-brand-500/30 text-brand-400 text-xs px-2.5 py-1 rounded-full font-medium mb-2">
+            <i class="fa-solid fa-bolt"></i> Pedido Escaneado por NFC
+          </div>
+          <h2 class="text-xl font-bold text-white mb-1">¡Bienvenido a la Mesa <span id="client-table-number-display" class="text-brand-500">4</span>!</h2>
+          <p class="text-xs text-slate-400">Elige tus platillos favoritos y tu pedido llegará directamente a la cocina en segundos.</p>
+        </div>
+      </div>
+
+      <!-- Selector de Mesa Móvil (Simulador de Mesa) -->
+      <div class="mb-6 bg-slate-900 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+        <label class="text-xs font-semibold text-slate-300 flex items-center gap-2">
+          <i class="fa-solid fa-chair text-brand-500"></i> Número de Mesa:
+        </label>
+        <select id="select-table" onchange="updateSelectedTable(this.value)" class="bg-slate-950 border border-slate-700 text-white font-bold text-sm px-3 py-1.5 rounded-lg focus:outline-none focus:border-brand-500">
+          <option value="1">Mesa 1</option>
+          <option value="2">Mesa 2</option>
+          <option value="3">Mesa 3</option>
+          <option value="4" selected>Mesa 4</option>
+          <option value="5">Mesa 5</option>
+          <option value="6">Mesa 6</option>
+          <option value="barra">Barra Principal</option>
+        </select>
+      </div>
+
+      <!-- Categorías (Filtros Horizontal) -->
+      <div class="flex gap-2 overflow-x-auto pb-3 mb-6 hide-scrollbar">
+        <button onclick="filterCategory('todos')" class="cat-btn active bg-brand-500 text-white px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shadow-md transition-all flex items-center gap-2">
+          <i class="fa-solid fa-border-all"></i> Todos
+        </button>
+        <button onclick="filterCategory('hamburguesas')" class="cat-btn bg-slate-900 border border-slate-800 text-slate-400 hover:text-white px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-2">
+          <i class="fa-solid fa-burger"></i> Hamburguesas
+        </button>
+        <button onclick="filterCategory('acompanantes')" class="cat-btn bg-slate-900 border border-slate-800 text-slate-400 hover:text-white px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-2">
+          <i class="fa-solid fa-french-fries"></i> Entradas
+        </button>
+        <button onclick="filterCategory('bebidas')" class="cat-btn bg-slate-900 border border-slate-800 text-slate-400 hover:text-white px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-2">
+          <i class="fa-solid fa-glass-water"></i> Bebidas
+        </button>
+      </div>
+
+      <!-- Grid de Productos -->
+      <div id="products-grid" class="grid grid-cols-1 gap-4">
+        <!-- Los productos se inyectan dinámicamente con JS -->
+      </div>
+
+    </section>
+
+    <!-- Barra Flotante de Carrito / Pedido (Móvil) -->
+    <div id="cart-floating-bar" class="fixed bottom-0 left-0 right-0 z-30 p-4 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 transform translate-y-full transition-transform duration-300">
+      <div class="max-w-md mx-auto flex items-center justify-between gap-4">
+        <div>
+          <p class="text-xs text-slate-400">Total acumulado</p>
+          <p id="cart-total-price" class="text-lg font-extrabold text-white">$0.00</p>
+        </div>
+        <button onclick="openCartModal()" class="flex-1 bg-gradient-to-r from-brand-600 to-amber-500 hover:from-brand-500 hover:to-amber-400 text-white font-bold py-3 px-5 rounded-xl shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 text-sm transition-all transform active:scale-95">
+          <i class="fa-solid fa-basket-shopping"></i>
+          <span>Ver Pedido</span>
+          <span id="cart-count-badge" class="bg-white text-slate-950 text-xs px-2 py-0.5 rounded-full font-black">0</span>
+        </button>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- VIEW 2: VISTA DE COCINA / ADMIN           -->
+    <!-- ========================================== -->
+    <section id="view-kitchen" class="hidden max-w-7xl mx-auto px-4 py-6">
+      
+      <!-- Encabezado de Cocina -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+        <div>
+          <h2 class="text-2xl font-black text-white flex items-center gap-3">
+            <i class="fa-solid fa-kitchen-set text-brand-500"></i>
+            Monitor de Comandas en Tiempo Real
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Los pedidos ingresados mediante NFC aparecerán inmediatamente en este panel.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs text-slate-300 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+            <span>Canal Activo en Vivo</span>
+          </div>
+          <button onclick="clearAllOrders()" class="text-xs text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 px-3 py-2 rounded-xl transition flex items-center gap-1.5">
+            <i class="fa-solid fa-trash-can"></i> Limpiar Historial
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjetas de Estadísticas Rápidas -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+          <p class="text-xs font-medium text-slate-400 mb-1">Total Pedidos</p>
+          <p id="stat-total" class="text-2xl font-bold text-white">0</p>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+          <p class="text-xs font-medium text-amber-400 mb-1">En Espera</p>
+          <p id="stat-pending" class="text-2xl font-bold text-amber-400">0</p>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+          <p class="text-xs font-medium text-blue-400 mb-1">En Preparación</p>
+          <p id="stat-preparing" class="text-2xl font-bold text-blue-400">0</p>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+          <p class="text-xs font-medium text-emerald-400 mb-1">Completados</p>
+          <p id="stat-ready" class="text-2xl font-bold text-emerald-400">0</p>
+        </div>
+      </div>
+
+      <!-- Grid de Comandas / Órdenes -->
+      <div id="kitchen-orders-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <!-- Las órdenes se inyectan dinámicamente -->
+      </div>
+
+      <!-- Estado Vacío -->
+      <div id="kitchen-empty-state" class="text-center py-16 bg-slate-900/50 border border-dashed border-slate-800 rounded-3xl">
+        <div class="w-16 h-16 rounded-2xl bg-slate-800 text-slate-600 flex items-center justify-center mx-auto mb-4 text-2xl">
+          <i class="fa-solid fa-receipt"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slate-300 mb-1">No hay pedidos registrados aún</h3>
+        <p class="text-xs text-slate-500 max-w-sm mx-auto mb-4">Usa la pestaña 'Menú Cliente' para simular un pedido de prueba y ver cómo llega en tiempo real.</p>
+        <button onclick="switchView('client')" class="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">
+          Ir al Menú para hacer un pedido
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL CARRITO DE COMPRAS -->
+  <div id="cart-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl transform translate-y-full sm:translate-y-0 transition-transform duration-300 max-h-[90vh] flex flex-col">
+      
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-utensils text-brand-500"></i>
+          <h3 class="font-bold text-lg text-white">Tu Pedido - <span id="cart-modal-table" class="text-brand-500">Mesa 4</span></h3>
+        </div>
+        <button onclick="closeCartModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Items del Carrito -->
+      <div id="cart-items-list" class="flex-1 overflow-y-auto space-y-3 pr-1 mb-4">
+        <!-- Inyectado dinámicamente -->
+      </div>
+
+      <!-- Notas adicionales -->
+      <div class="mb-4">
+        <label class="block text-xs font-semibold text-slate-400 mb-1.5">Notas especiales para la cocina:</label>
+        <input type="text" id="order-notes" placeholder="Ej: Sin cebolla, extra salsa..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-brand-500">
+      </div>
+
+      <!-- Total y Enviar -->
+      <div class="pt-3 border-t border-slate-800">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-sm text-slate-400 font-medium">Total a pagar:</span>
+          <span id="cart-modal-total" class="text-xl font-black text-white">$0.00</span>
+        </div>
+
+        <button onclick="submitOrder()" class="w-full bg-gradient-to-r from-brand-600 to-amber-500 hover:from-brand-500 hover:to-amber-400 text-white font-extrabold py-3.5 rounded-xl shadow-lg shadow-brand-500/30 flex items-center justify-center gap-2 text-sm transition active:scale-98">
+          <i class="fa-solid fa-paper-plane"></i>
+          <span>Confirmar y Enviar a Cocina</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL ANIMACIÓN DE CONFIRMACIÓN DE PEDIDO -->
+  <div id="success-modal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-slate-900 border border-slate-800 max-w-sm w-full rounded-3xl p-8 text-center shadow-2xl transform scale-90 transition-transform duration-300">
+      
+      <div class="w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4 animate-bounce">
+        <i class="fa-solid fa-circle-check text-4xl"></i>
+      </div>
+
+      <h3 class="text-xl font-black text-white mb-2">¡Pedido Recibido!</h3>
+      <p class="text-xs text-slate-400 mb-6 leading-relaxed">
+        Tu pedido ha sido enviado instantáneamente al panel de la cocina. ¡En breve comenzaremos a prepararlo!
+      </p>
+
+      <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800/80 mb-6 text-left space-y-2 text-xs">
+        <div class="flex justify-between">
+          <span class="text-slate-500">Mesa:</span>
+          <span id="success-order-table" class="font-bold text-white">Mesa 4</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">ID Orden:</span>
+          <span id="success-order-id" class="font-mono text-brand-400">#ORD-1234</span>
+        </div>
+      </div>
+
+      <button onclick="closeSuccessModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-xs transition">
+        Entendido / Volver al Menú
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL INFORMACIÓN NFC -->
+  <div id="nfc-info-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-slate-900 border border-slate-800 max-w-lg w-full rounded-3xl p-6 shadow-2xl relative">
+      
+      <button onclick="toggleNfcInfoModal(false)" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold text-lg">
+          <i class="fa-solid fa-nfc-symbol"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-base text-white">¿Cómo programar tu etiqueta NTAG215?</h3>
+          <p class="text-xs text-slate-400">Guía para integrar esta app con tus chips físicos</p>
+        </div>
+      </div>
+
+      <div class="space-y-3 text-xs text-slate-300 leading-relaxed mb-6">
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <p class="font-semibold text-brand-400 mb-1"><i class="fa-solid fa-1"></i> Publica esta aplicación web</p>
+          <p class="text-slate-400">Sube este código a un hosting gratuito (Vercel, Netlify, GitHub Pages) para obtener tu URL pública HTTPS.</p>
+        </div>
+
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <p class="font-semibold text-brand-400 mb-1"><i class="fa-solid fa-2"></i> Graba la URL con NFC Tools en tu teléfono</p>
+          <p class="text-slate-400">En la app de tu celular elige: <strong class="text-white">WRITE &gt; Add a record &gt; URL/URI</strong> y pega el enlace de tu web (ej: <span class="text-amber-400">https://mi-restaurante.vercel.app</span>).</p>
+        </div>
+
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <p class="font-semibold text-brand-400 mb-1"><i class="fa-solid fa-3"></i> Pégalo en la mesa del restaurante</p>
+          <p class="text-slate-400">¡Listo! Cada cliente que acerque su celular al chip pegado en la mesa abrirá inmediatamente este menú digital.</p>
+        </div>
+      </div>
+
+      <button onclick="toggleNfcInfoModal(false)" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl text-xs transition">
+        ¡Entendido, volver a la prueba!
+      </button>
+
+    </div>
+  </div>
+
+
+  <!-- LÓGICA JAVASCRIPT -->
+  <script>
+    // --- BASE DE DATOS MOCK DE PRODUCTOS ---
+    const PRODUCTS = [
+      {
+        id: 'h1',
+        name: 'Hamburguesa Trilogía Cheddar',
+        category: 'hamburguesas',
+        price: 12.90,
+        description: '200g de carne angus, triple queso cheddar fundido, tocineta crocante y salsa ahumada.',
+        image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=400&q=80'
+      },
+      {
+        id: 'h2',
+        name: 'Burger Trufada & Champíñon',
+        category: 'hamburguesas',
+        price: 14.50,
+        description: 'Carne artesanal, mayonesa de trufa negra, champiñones salteados y queso suizo.',
+        image: 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?auto=format&fit=crop&w=400&q=80'
+      },
+      {
+        id: 'a1',
+        name: 'Papas Rústicas Crunch',
+        category: 'acompanantes',
+        price: 5.50,
+        description: 'Sazonadas con romero, paprika ahumada y servidas con alioli de la casa.',
+        image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=400&q=80'
+      },
+      {
+        id: 'a2',
+        name: 'Tequeños Gourmet (6 uds)',
+        category: 'acompanantes',
+        price: 6.90,
+        description: 'Deditos de queso de mano fritos acompañados de salsa de maracuyá picante.',
+        image: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=400&q=80'
+      },
+      {
+        id: 'b1',
+        name: 'Limonada de Coco Menta',
+        category: 'bebidas',
+        price: 4.20,
+        description: 'Refrescante mezcla de leche de coco natural, limón recién exprimido y menta.',
+        image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=400&q=80'
+      },
+      {
+        id: 'b2',
+        name: 'Cerveza Artesanal IPA',
+        category: 'bebidas',
+        price: 5.00,
+        description: 'Cerveza local con notas cítricas, amargo equilibrado y 6.2% de alcohol.',
+        image: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?auto=format&fit=crop&w=400&q=80'
+      }
+    ];
+
+    // --- ESTADO DE LA APLICACIÓN ---
+    let currentTable = '4';
+    let cart = []; // Array de { product, quantity }
+    let orders = []; // Array de órdenes registradas
+
+    // Sincronización entre pestañas / pantallas en tiempo real usando BroadcastChannel
+    const channel = new BroadcastChannel('gourmet_tap_orders_channel');
+
+    // --- INICIALIZACIÓN ---
+    window.addEventListener('DOMContentLoaded', () => {
+      loadOrdersFromStorage();
+      renderProducts('todos');
+      updateCartUI();
+      renderKitchenOrders();
+
+      // Escuchar eventos en tiempo real de otras pestañas
+      channel.onmessage = (event) => {
+        if (event.data && event.data.type === 'NEW_ORDER') {
+          orders.unshift(event.data.order);
+          saveOrdersToStorage();
+          renderKitchenOrders();
+          playKitchenNotificationSound();
+        } else if (event.data && event.data.type === 'UPDATE_STATUS') {
+          const idx = orders.findIndex(o => o.id === event.data.orderId);
+          if (idx !== -1) {
+            orders[idx].status = event.data.newStatus;
+            saveOrdersToStorage();
+            renderKitchenOrders();
+          }
+        } else if (event.data && event.data.type === 'CLEAR_ORDERS') {
+          orders = [];
+          saveOrdersToStorage();
+          renderKitchenOrders();
+        }
+      };
+
+      // Listener secundario por si cambian en LocalStorage directamente
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'gourmet_tap_orders') {
+          loadOrdersFromStorage();
+          renderKitchenOrders();
+        }
+      });
+    });
+
+    // --- NAVEGACIÓN Y VISTAS ---
+    function switchView(view) {
+      const clientSec = document.getElementById('view-client');
+      const kitchenSec = document.getElementById('view-kitchen');
+      const btnClient = document.getElementById('btn-view-client');
+      const btnKitchen = document.getElementById('btn-view-kitchen');
+
+      if (view === 'client') {
+        clientSec.classList.remove('hidden');
+        kitchenSec.classList.add('hidden');
+
+        btnClient.className = "flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-semibold transition-all duration-200 bg-brand-500 text-white shadow-md";
+        btnKitchen.className = "flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-semibold transition-all duration-200 text-slate-400 hover:text-slate-200";
+      } else {
+        clientSec.classList.add('hidden');
+        kitchenSec.classList.remove('hidden');
+
+        btnKitchen.className = "flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-semibold transition-all duration-200 bg-brand-500 text-white shadow-md";
+        btnClient.className = "flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-semibold transition-all duration-200 text-slate-400 hover:text-slate-200";
+      }
+    }
+
+    function updateSelectedTable(val) {
+      currentTable = val;
+      document.getElementById('client-table-number-display').textContent = val === 'barra' ? 'Barra' : val;
+      document.getElementById('cart-modal-table').textContent = val === 'barra' ? 'Barra Principal' : `Mesa ${val}`;
+    }
+
+    // --- RENDERING MENÚ CLIENTE ---
+    function renderProducts(category) {
+      const container = document.getElementById('products-grid');
+      container.innerHTML = '';
+
+      const filtered = category === 'todos' 
+        ? PRODUCTS 
+        : PRODUCTS.filter(p => p.category === category);
+
+      filtered.forEach(product => {
+        const itemCard = document.createElement('div');
+        itemCard.className = 'bg-slate-900 border border-slate-800/80 rounded-2xl overflow-hidden flex flex-col justify-between hover:border-slate-700 transition duration-200 shadow-md';
+        itemCard.innerHTML = `
+          <div class="flex p-3.5 gap-3.5">
+            <img src="${product.image}" alt="${product.name}" class="w-24 h-24 rounded-xl object-cover flex-shrink-0 bg-slate-800">
+            <div class="flex-1 flex flex-col justify-between">
+              <div>
+                <h4 class="font-bold text-white text-sm leading-snug mb-1">${product.name}</h4>
+                <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed">${product.description}</p>
+              </div>
+              <div class="flex items-center justify-between mt-2">
+                <span class="text-base font-extrabold text-brand-400">$${product.price.toFixed(2)}</span>
+                <button onclick="addToCart('${product.id}')" class="bg-brand-500/10 hover:bg-brand-500 border border-brand-500/30 text-brand-400 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 active:scale-95">
+                  <i class="fa-solid fa-plus"></i> Agregar
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(itemCard);
+      });
+    }
+
+    function filterCategory(cat) {
+      document.querySelectorAll('.cat-btn').forEach(btn => {
+        btn.classList.remove('bg-brand-500', 'text-white');
+        btn.classList.add('bg-slate-900', 'border', 'border-slate-800', 'text-slate-400');
+      });
+
+      event.currentTarget.classList.remove('bg-slate-900', 'border', 'border-slate-800', 'text-slate-400');
+      event.currentTarget.classList.add('bg-brand-500', 'text-white');
+
+      renderProducts(cat);
+    }
+
+    // --- LÓGICA DEL CARRITO ---
+    function addToCart(productId) {
+      const product = PRODUCTS.find(p => p.id === productId);
+      if (!product) return;
+
+      const existingIndex = cart.findIndex(item => item.product.id === productId);
+      if (existingIndex > -1) {
+        cart[existingIndex].quantity += 1;
+      } else {
+        cart.push({ product, quantity: 1 });
+      }
+
+      updateCartUI();
+    }
+
+    function updateQuantity(productId, delta) {
+      const index = cart.findIndex(item => item.product.id === productId);
+      if (index === -1) return;
+
+      cart[index].quantity += delta;
+      if (cart[index].quantity <= 0) {
+        cart.splice(index, 1);
+      }
+
+      updateCartUI();
+      renderCartModalItems();
+    }
+
+    function updateCartUI() {
+      const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+      const totalPrice = cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
+
+      const floatingBar = document.getElementById('cart-floating-bar');
+      document.getElementById('cart-count-badge').textContent = totalItems;
+      document.getElementById('cart-total-price').textContent = `$${totalPrice.toFixed(2)}`;
+
+      if (totalItems > 0) {
+        floatingBar.classList.remove('translate-y-full');
+      } else {
+        floatingBar.classList.add('translate-y-full');
+        closeCartModal();
+      }
+    }
+
+    // --- MODALES CARRITO Y CONFIRMACIÓN ---
+    function openCartModal() {
+      if (cart.length === 0) return;
+      renderCartModalItems();
+      
+      const modal = document.getElementById('cart-modal');
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    function closeCartModal() {
+      const modal = document.getElementById('cart-modal');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    function renderCartModalItems() {
+      const container = document.getElementById('cart-items-list');
+      container.innerHTML = '';
+
+      let total = 0;
+
+      cart.forEach(item => {
+        const subtotal = item.product.price * item.quantity;
+        total += subtotal;
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800';
+        row.innerHTML = `
+          <div class="flex-1 pr-2">
+            <h5 class="text-xs font-bold text-white">${item.product.name}</h5>
+            <span class="text-[11px] text-brand-400 font-semibold">$${item.product.price.toFixed(2)} c/u</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <div class="flex items-center bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
+              <button onclick="updateQuantity('${item.product.id}', -1)" class="px-2 py-1 text-slate-400 hover:text-white text-xs font-bold">
+                <i class="fa-solid fa-minus"></i>
+              </button>
+              <span class="px-2 text-xs font-bold text-white">${item.quantity}</span>
+              <button onclick="updateQuantity('${item.product.id}', 1)" class="px-2 py-1 text-slate-400 hover:text-white text-xs font-bold">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+            <span class="text-xs font-bold text-white w-14 text-right">$${subtotal.toFixed(2)}</span>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+
+      document.getElementById('cart-modal-total').textContent = `$${total.toFixed(2)}`;
+    }
+
+    function submitOrder() {
+      if (cart.length === 0) return;
+
+      const orderNotes = document.getElementById('order-notes').value.trim();
+      const orderId = 'ORD-' + Math.floor(1000 + Math.random() * 9000);
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const newOrder = {
+        id: orderId,
+        table: currentTable === 'barra' ? 'Barra Principal' : `Mesa ${currentTable}`,
+        time: timeStr,
+        items: [...cart],
+        notes: orderNotes,
+        status: 'pending', // 'pending', 'preparing', 'ready'
+        total: cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0)
+      };
+
+      // Guardar localmente
+      orders.unshift(newOrder);
+      saveOrdersToStorage();
+
+      // Emitir evento por BroadcastChannel a otras ventanas
+      channel.postMessage({
+        type: 'NEW_ORDER',
+        order: newOrder
+      });
+
+      // Actualizar Vista de Cocina
+      renderKitchenOrders();
+
+      // Limpiar carrito
+      cart = [];
+      document.getElementById('order-notes').value = '';
+      updateCartUI();
+      closeCartModal();
+
+      // Mostrar modal de confirmación animado
+      showSuccessModal(orderId, newOrder.table);
+    }
+
+    function showSuccessModal(orderId, table) {
+      document.getElementById('success-order-id').textContent = '#' + orderId;
+      document.getElementById('success-order-table').textContent = table;
+
+      const modal = document.getElementById('success-modal');
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    function closeSuccessModal() {
+      const modal = document.getElementById('success-modal');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    // --- LÓGICA DE LA COCINA / ADMIN ---
+    function renderKitchenOrders() {
+      const container = document.getElementById('kitchen-orders-container');
+      const emptyState = document.getElementById('kitchen-empty-state');
+      
+      container.innerHTML = '';
+
+      if (orders.length === 0) {
+        emptyState.classList.remove('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+      }
+
+      // Actualizar estadísticas
+      document.getElementById('stat-total').textContent = orders.length;
+      document.getElementById('stat-pending').textContent = orders.filter(o => o.status === 'pending').length;
+      document.getElementById('stat-preparing').textContent = orders.filter(o => o.status === 'preparing').length;
+      document.getElementById('stat-ready').textContent = orders.filter(o => o.status === 'ready').length;
+
+      // Badge contador en pestaña
+      const pendingCount = orders.filter(o => o.status === 'pending').length;
+      const kitchenBadge = document.getElementById('kitchen-badge');
+      if (pendingCount > 0) {
+        kitchenBadge.textContent = pendingCount;
+        kitchenBadge.classList.remove('hidden');
+      } else {
+        kitchenBadge.classList.add('hidden');
+      }
+
+      orders.forEach(order => {
+        const orderCard = document.createElement('div');
+        
+        let statusBadgeClass = '';
+        let statusText = '';
+        let borderClass = '';
+
+        if (order.status === 'pending') {
+          statusBadgeClass = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+          statusText = 'En Espera';
+          borderClass = 'border-amber-500/40';
+        } else if (order.status === 'preparing') {
+          statusBadgeClass = 'bg-blue-500/10 text-blue-400 border-blue-500/30';
+          statusText = 'En Preparación';
+          borderClass = 'border-blue-500/40';
+        } else {
+          statusBadgeClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+          statusText = 'Listo para Entregar';
+          borderClass = 'border-emerald-500/40';
+        }
+
+        orderCard.className = `bg-slate-900 rounded-2xl border ${borderClass} p-4 flex flex-col justify-between shadow-xl transition-all duration-300 relative overflow-hidden`;
+
+        let itemsHtml = order.items.map(i => `
+          <div class="flex justify-between items-center text-xs py-1 border-b border-slate-800/60 last:border-0">
+            <span class="text-white font-medium"><strong class="text-brand-400">${i.quantity}x</strong> ${i.product.name}</span>
+            <span class="text-slate-400 font-mono">$${(i.product.price * i.quantity).toFixed(2)}</span>
+          </div>
+        `).join('');
+
+        orderCard.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+              <div>
+                <span class="text-xs font-mono text-slate-500">${order.id}</span>
+                <h4 class="font-extrabold text-base text-white flex items-center gap-2">
+                  <i class="fa-solid fa-chair text-brand-500 text-xs"></i> ${order.table}
+                </h4>
+              </div>
+              <div class="text-right">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${statusBadgeClass} mb-1">
+                  ${statusText}
+                </span>
+                <p class="text-[11px] text-slate-400"><i class="fa-regular fa-clock"></i> ${order.time}</p>
+              </div>
+            </div>
+
+            <!-- Items -->
+            <div class="space-y-1 mb-3">
+              ${itemsHtml}
+            </div>
+
+            ${order.notes ? `
+              <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-[11px] text-amber-300/90 mb-3 flex items-start gap-1.5">
+                <i class="fa-solid fa-comment-dots text-xs mt-0.5 text-amber-500"></i>
+                <span><strong>Nota:</strong> ${order.notes}</span>
+              </div>
+            ` : ''}
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center pt-2 border-t border-slate-800 mb-3">
+              <span class="text-xs text-slate-400">Total comanda:</span>
+              <span class="text-sm font-extrabold text-white font-mono">$${order.total.toFixed(2)}</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              ${order.status === 'pending' ? `
+                <button onclick="updateOrderStatus('${order.id}', 'preparing')" class="col-span-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-fire"></i> Iniciar Preparación
+                </button>
+              ` : ''}
+
+              ${order.status === 'preparing' ? `
+                <button onclick="updateOrderStatus('${order.id}', 'ready')" class="col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-check"></i> Marcar como Listo
+                </button>
+              ` : ''}
+
+              ${order.status === 'ready' ? `
+                <button onclick="removeOrder('${order.id}')" class="col-span-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-box-archive"></i> Archivar Pedido
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+
+        container.appendChild(orderCard);
+      });
+    }
+
+    function updateOrderStatus(orderId, newStatus) {
+      const idx = orders.findIndex(o => o.id === orderId);
+      if (idx !== -1) {
+        orders[idx].status = newStatus;
+        saveOrdersToStorage();
+        renderKitchenOrders();
+
+        channel.postMessage({
+          type: 'UPDATE_STATUS',
+          orderId,
+          newStatus
+        });
+      }
+    }
+
+    function removeOrder(orderId) {
+      orders = orders.filter(o => o.id !== orderId);
+      saveOrdersToStorage();
+      renderKitchenOrders();
+    }
+
+    function clearAllOrders() {
+      if (confirm('¿Deseas borrar todo el historial de pedidos de la cocina?')) {
+        orders = [];
+        saveOrdersToStorage();
+        renderKitchenOrders();
+
+        channel.postMessage({
+          type: 'CLEAR_ORDERS'
+        });
+      }
+    }
+
+    // --- PERSISTENCIA LOCALSTORAGE ---
+    function saveOrdersToStorage() {
+      localStorage.setItem('gourmet_tap_orders', JSON.stringify(orders));
+    }
+
+    function loadOrdersFromStorage() {
+      const stored = localStorage.getItem('gourmet_tap_orders');
+      if (stored) {
+        try {
+          orders = JSON.parse(stored);
+        } catch(e) {
+          orders = [];
+        }
+      }
+    }
+
+    function playKitchenNotificationSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.15); // A5
+
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.4);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+      } catch (e) {
+        // Ignorar si el navegador bloquea audio sin interacción previa
+      }
+    }
+
+    // --- MODAL DE INFORMACIÓN NFC ---
+    function toggleNfcInfoModal(show) {
+      const modal = document.getElementById('nfc-info-modal');
+      if (show) {
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+      } else {
+        modal.classList.add('opacity-0', 'pointer-events-none');
+      }
+    }
+  </script>
+</body>
+</html>
