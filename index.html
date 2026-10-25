@@ -521,7 +521,7 @@ function generateCleanPDF(order) {
   medidor.setFontSize(8);
   const rows = order.items.map(i => ({
     ...i,
-    lines: medidor.splitTextToSize(i.name, 38)
+  lines: medidor.splitTextToSize(i.name, 27)
   }));
   const itemsHeight = rows.reduce((acc, r) => acc + r.lines.length * 4 + 2, 0);
   const height = 100 + itemsHeight + (order.contact ? 5 : 0);
