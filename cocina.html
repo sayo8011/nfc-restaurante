@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gourmet Tap - Panel de Cocina</title>
+  <title>Panel de Cocina - Gourmet Tap</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -18,192 +18,147 @@
     }
   </script>
 </head>
-<body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 p-4 md:p-6">
+<body class="min-h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 p-6">
 
   <!-- Header Cocina -->
-  <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
-    <div>
-      <h2 class="text-2xl font-black text-white flex items-center gap-3">
-        <i class="fa-solid fa-kitchen-set text-brand-500"></i> Panel de Cocina & Comandas
-      </h2>
-      <p class="text-xs text-slate-400 mt-1">Este panel es privado. Las órdenes del NFC llegarán aquí automáticamente.</p>
+  <header class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center shadow-lg">
+        <i class="fa-solid fa-fire-burner text-white"></i>
+      </div>
+      <div>
+        <h1 class="font-black text-lg text-white">Panel de Cocina & Comandas</h1>
+        <p class="text-xs text-slate-400">Sincronizado en tiempo real con Firebase Firestore.</p>
+      </div>
     </div>
     <div class="flex items-center gap-3">
-      <div class="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs text-slate-300 flex items-center gap-2">
-        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-        <span>Escuchando Pedidos</span>
-      </div>
-      <button onclick="clearAllOrders()" class="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-2 rounded-xl transition hover:bg-rose-500/20">
-        <i class="fa-solid fa-trash-can"></i> Limpiar Historial
-      </button>
+      <span class="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs px-3 py-1.5 rounded-xl font-semibold">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> En Línea
+      </span>
     </div>
   </header>
 
-  <!-- Estadísticas -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <!-- Métricas rápidas -->
+  <div class="grid grid-cols-3 gap-4 mb-6 max-w-4xl">
     <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-      <p class="text-xs text-slate-400 mb-1">Total Pedidos</p>
-      <p id="stat-total" class="text-2xl font-bold text-white">0</p>
+      <p class="text-xs text-slate-400">Total Pedidos</p>
+      <h3 id="stat-total" class="text-2xl font-black text-white">0</h3>
     </div>
     <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-      <p class="text-xs text-amber-400 mb-1">En Espera</p>
-      <p id="stat-pending" class="text-2xl font-bold text-amber-400">0</p>
+      <p class="text-xs text-amber-400">Pendientes</p>
+      <h3 id="stat-pending" class="text-2xl font-black text-white">0</h3>
     </div>
     <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-      <p class="text-xs text-blue-400 mb-1">En Preparación</p>
-      <p id="stat-preparing" class="text-2xl font-bold text-blue-400">0</p>
-    </div>
-    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-      <p class="text-xs text-emerald-400 mb-1">Completados</p>
-      <p id="stat-ready" class="text-2xl font-bold text-emerald-400">0</p>
+      <p class="text-xs text-emerald-400">Completados</p>
+      <h3 id="stat-completed" class="text-2xl font-black text-white">0</h3>
     </div>
   </div>
 
-  <!-- Contenedor de Comandas -->
-  <div id="kitchen-orders-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 flex-1 overflow-y-auto pb-6"></div>
-
-  <!-- Estado Vacío -->
-  <div id="kitchen-empty-state" class="hidden text-center py-20 bg-slate-900/50 border border-dashed border-slate-800 rounded-3xl m-auto max-w-md w-full">
-    <div class="w-16 h-16 rounded-2xl bg-slate-800 text-slate-600 flex items-center justify-center mx-auto mb-4 text-2xl">
-      <i class="fa-solid fa-receipt"></i>
+  <!-- Contenedor de Órdenes -->
+  <main class="flex-1">
+    <h2 class="text-sm font-bold text-slate-300 mb-4 uppercase tracking-wider">Órdenes Entrantes</h2>
+    <div id="kitchen-orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div id="empty-state" class="col-span-full py-16 text-center border-2 border-dashed border-slate-800 rounded-3xl">
+        <i class="fa-solid fa-receipt text-4xl text-slate-600 mb-3"></i>
+        <h3 class="text-sm font-bold text-slate-400">No hay pedidos activos</h3>
+        <p class="text-xs text-slate-600 mt-1">Los pedidos realizados desde las mesas aparecerán aquí al instante.</p>
+      </div>
     </div>
-    <h3 class="text-lg font-bold text-slate-300 mb-1">No hay pedidos activos</h3>
-    <p class="text-xs text-slate-500">Los pedidos realizados mediante NFC aparecerán aquí al instante.</p>
-  </div>
+  </main>
 
-  <script>
-    let orders = [];
-    const channel = new BroadcastChannel('gourmet_tap_orders_channel');
+  <!-- FIREBASE LISTENER -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, query, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    window.addEventListener('DOMContentLoaded', () => {
-      loadOrders();
-      renderKitchenOrders();
+    const firebaseConfig = {
+      apiKey: "AIzaSyBkY9Hthp4DBfg5fDRul2A5ReQhwBE00LM",
+      authDomain: "prueba-con-nfc.firebaseapp.com",
+      projectId: "prueba-con-nfc",
+      storageBucket: "prueba-con-nfc.firebasestorage.app",
+      messagingSenderId: "239772271725",
+      appId: "1:239772271725:web:e151be1bcff1ae864e6b64",
+      measurementId: "G-2XW0MG6H10"
+    };
 
-      channel.onmessage = (event) => {
-        if (event.data && event.data.type === 'NEW_ORDER') {
-          orders.unshift(event.data.order);
-          saveOrders();
-          renderKitchenOrders();
-          playKitchenNotificationSound();
-        }
-      };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-      window.addEventListener('storage', (e) => {
-        if (e.key === 'gourmet_tap_orders') {
-          loadOrders();
-          renderKitchenOrders();
-        }
+    const ordersGrid = document.getElementById('kitchen-orders-grid');
+    const emptyState = document.getElementById('empty-state');
+    const statTotal = document.getElementById('stat-total');
+    const statPending = document.getElementById('stat-pending');
+    const statCompleted = document.getElementById('stat-completed');
+
+    const q = query(collection(db, "orders"));
+    
+    onSnapshot(q, (snapshot) => {
+      ordersGrid.innerHTML = '';
+      let orders = [];
+      
+      snapshot.forEach((docSnap) => {
+        orders.push({ id: docSnap.id, ...docSnap.data() });
       });
-    });
-
-    function loadOrders() {
-      orders = JSON.parse(localStorage.getItem('gourmet_tap_orders') || '[]');
-    }
-
-    function saveOrders() {
-      localStorage.setItem('gourmet_tap_orders', JSON.stringify(orders));
-    }
-
-    function renderKitchenOrders() {
-      const container = document.getElementById('kitchen-orders-container');
-      const emptyState = document.getElementById('kitchen-empty-state');
-      container.innerHTML = '';
-
-      let total = orders.length;
-      let pending = orders.filter(o => o.status === 'pending').length;
-      let preparing = orders.filter(o => o.status === 'preparing').length;
-      let ready = orders.filter(o => o.status === 'ready').length;
-
-      document.getElementById('stat-total').textContent = total;
-      document.getElementById('stat-pending').textContent = pending;
-      document.getElementById('stat-preparing').textContent = preparing;
-      document.getElementById('stat-ready').textContent = ready;
 
       if (orders.length === 0) {
-        emptyState.classList.remove('hidden');
+        ordersGrid.appendChild(emptyState);
+        statTotal.textContent = '0';
+        statPending.textContent = '0';
+        statCompleted.textContent = '0';
         return;
-      } else {
-        emptyState.classList.add('hidden');
       }
+
+      statTotal.textContent = orders.length;
+      statPending.textContent = orders.filter(o => o.status === 'pending').length;
+      statCompleted.textContent = orders.filter(o => o.status === 'completed').length;
 
       orders.forEach(order => {
         const card = document.createElement('div');
-        card.className = `bg-slate-900 border rounded-2xl p-4 flex flex-col justify-between shadow-xl transition ${
-          order.status === 'pending' ? 'border-amber-500/50' : order.status === 'preparing' ? 'border-blue-500/50' : 'border-emerald-500/50'
-        }`;
-
-        let statusBadge = '';
-        if (order.status === 'pending') statusBadge = '<span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">En Espera</span>';
-        else if (order.status === 'preparing') statusBadge = '<span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">En Preparación</span>';
-        else statusBadge = '<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">Completado</span>';
-
+        const isCompleted = order.status === 'completed';
+        
+        card.className = `bg-slate-900 border rounded-3xl p-5 flex flex-col justify-between shadow-xl transition-all ${isCompleted ? 'border-emerald-500/30 opacity-70' : 'border-slate-800'}`;
+        
         let itemsHtml = order.items.map(i => `
-          <div class="flex justify-between text-xs py-1 border-b border-slate-800/60">
-            <span class="text-slate-300 font-medium"><strong class="text-brand-400">${i.quantity}x</strong> ${i.product.name}</span>
-            <span class="text-slate-400">$${(i.product.price * i.quantity).toFixed(2)}</span>
+          <div class="flex justify-between items-center text-xs py-1 border-b border-slate-800/50">
+            <span class="text-slate-300"><strong class="text-brand-400 font-extrabold">${i.quantity}x</strong> ${i.name}</span>
+            <span class="text-slate-500">$${(i.price * i.quantity).toFixed(2)}</span>
           </div>
         `).join('');
 
         card.innerHTML = `
           <div>
-            <div class="flex items-center justify-between mb-3">
-              <span class="font-black text-white text-base">${order.table}</span>
-              ${statusBadge}
+            <div class="flex justify-between items-center mb-3">
+              <span class="bg-brand-500/10 text-brand-400 border border-brand-500/30 text-xs px-2.5 py-1 rounded-xl font-bold">
+                <i class="fa-solid fa-chair"></i> ${order.table}
+              </span>
+              <span class="text-xs text-slate-500"><i class="fa-regular fa-clock"></i> ${order.time}</span>
             </div>
-            <div class="flex justify-between items-center text-xs text-slate-400 mb-3 bg-slate-950 p-2 rounded-xl">
-              <span><i class="fa-solid fa-hashtag text-brand-500"></i> ${order.id}</span>
-              <span><i class="fa-regular fa-clock"></i> ${order.time}</span>
+            <div class="space-y-1 mb-4">
+              ${itemsHtml}
             </div>
-            <div class="space-y-1 mb-3">${itemsHtml}</div>
-            ${order.notes ? `<div class="bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs p-2 rounded-xl mb-3"><strong>Nota:</strong> ${order.notes}</div>` : ''}
+            ${order.notes ? `<div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-[11px] text-amber-300 mb-4"><i class="fa-solid fa-note-sticky"></i> <strong>Nota:</strong> ${order.notes}</div>` : ''}
           </div>
-          <div>
-            <div class="flex justify-between items-center pt-3 border-t border-slate-800 mb-3">
-              <span class="text-xs text-slate-400 font-semibold">Total Orden:</span>
-              <span class="text-sm font-black text-white">$${order.total.toFixed(2)}</span>
-            </div>
-            <div class="grid grid-cols-3 gap-1.5">
-              <button onclick="updateOrderStatus('${order.id}', 'pending')" class="py-1.5 rounded-lg text-[10px] font-bold transition ${order.status === 'pending' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'}">Espera</button>
-              <button onclick="updateOrderStatus('${order.id}', 'preparing')" class="py-1.5 rounded-lg text-[10px] font-bold transition ${order.status === 'preparing' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}">Proceso</button>
-              <button onclick="updateOrderStatus('${order.id}', 'ready')" class="py-1.5 rounded-lg text-[10px] font-bold transition ${order.status === 'ready' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}">Listo</button>
-            </div>
+          <div class="flex gap-2 pt-2 border-t border-slate-800">
+            ${!isCompleted ? 
+              `<button onclick="completeOrder('${order.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition">Completar</button>` : 
+              `<span class="flex-1 text-center text-emerald-400 text-xs font-bold py-2"><i class="fa-solid fa-check-circle"></i> Entregado</span>`
+            }
+            <button onclick="deleteOrder('${order.id}')" class="bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 px-3 py-2 rounded-xl text-xs transition"><i class="fa-solid fa-trash"></i></button>
           </div>
         `;
-        container.appendChild(card);
+        ordersGrid.appendChild(card);
       });
+    });
+
+    window.completeOrder = async function(orderId) {
+      const orderRef = doc(db, "orders", orderId);
+      await updateDoc(orderRef, { status: 'completed' });
     }
 
-    function updateOrderStatus(orderId, newStatus) {
-      const idx = orders.findIndex(o => o.id === orderId);
-      if (idx !== -1) {
-        orders[idx].status = newStatus;
-        saveOrders();
-        renderKitchenOrders();
+    window.deleteOrder = async function(orderId) {
+      if (confirm('¿Eliminar este pedido del historial?')) {
+        await deleteDoc(doc(db, "orders", orderId));
       }
-    }
-
-    function clearAllOrders() {
-      if (confirm('¿Deseas limpiar todo el historial de comandas?')) {
-        orders = [];
-        saveOrders();
-        renderKitchenOrders();
-      }
-    }
-
-    function playKitchenNotificationSound() {
-      try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.4);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.4);
-      } catch (e) {}
     }
   </script>
 </body>
