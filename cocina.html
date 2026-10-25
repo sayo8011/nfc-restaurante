@@ -138,7 +138,8 @@
       let pendingCount = 0;
       
       snapshot.forEach((docSnap) => {
-        cachedOrders.push({ id: docSnap.id, ...docSnap.data() });
+        // Guardamos el ID real del documento Firestore (docSnap.id)
+        cachedOrders.push({ firestoreId: docSnap.id, ...docSnap.data() });
       });
 
       if (cachedOrders.length === 0) {
@@ -187,37 +188,37 @@
           </div>
           <div class="flex gap-2 pt-2 border-t border-slate-800">
             ${!isCompleted ? 
-              `<button data-action="complete" data-id="${order.id}" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition">Completar y Facturar</button>` : 
-              `<button data-action="ticket" data-id="${order.id}" class="flex-1 bg-brand-600 hover:bg-brand-500 text-white font-bold py-2 rounded-xl text-xs transition"><i class="fa-solid fa-file-pdf"></i> Imprimir Factura</button>`
+              `<button data-action="complete" data-id="${order.firestoreId}" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition">Completar y Facturar</button>` : 
+              `<button data-action="ticket" data-id="${order.firestoreId}" class="flex-1 bg-brand-600 hover:bg-brand-500 text-white font-bold py-2 rounded-xl text-xs transition"><i class="fa-solid fa-file-pdf"></i> Imprimir Factura</button>`
             }
-            <button data-action="delete" data-id="${order.id}" class="bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 px-3 py-2 rounded-xl text-xs transition"><i class="fa-solid fa-trash"></i></button>
+            <button data-action="delete" data-id="${order.firestoreId}" class="bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 px-3 py-2 rounded-xl text-xs transition"><i class="fa-solid fa-trash"></i></button>
           </div>
         `;
         ordersGrid.appendChild(card);
       });
     });
 
-    // Delegación de eventos segura para los botones de las tarjetas
+    // Delegación de eventos con el ID real de Firestore
     ordersGrid.addEventListener('click', async (e) => {
       const btn = e.target.closest('button');
       if (!btn) return;
       const action = btn.getAttribute('data-action');
-      const orderId = btn.getAttribute('data-id');
+      const firestoreId = btn.getAttribute('data-id');
 
       if (action === 'complete') {
         try {
-          const orderRef = doc(db, "orders", orderId);
+          const orderRef = doc(db, "orders", firestoreId);
           await updateDoc(orderRef, { status: 'completed' });
-          generateTicketPDF(orderId);
+          generateTicketPDF(firestoreId);
         } catch (err) {
           console.error("Error al completar:", err);
         }
       } else if (action === 'ticket') {
-        generateTicketPDF(orderId);
+        generateTicketPDF(firestoreId);
       } else if (action === 'delete') {
         if (confirm('¿Eliminar este pedido del registro?')) {
           try {
-            await deleteDoc(doc(db, "orders", orderId));
+            await deleteDoc(doc(db, "orders", firestoreId));
           } catch (err) {
             console.error("Error al eliminar:", err);
           }
@@ -225,9 +226,9 @@
       }
     });
 
-    // FUNCIÓN GENERADORA DE TICKET PDF
-    function generateTicketPDF(orderId) {
-      const order = cachedOrders.find(o => o.id === orderId);
+    // FUNCIÓN GENERADORAS DE TICKET PDF USANDO ID REAL
+    function generateTicketPDF(firestoreId) {
+      const order = cachedOrders.find(o => o.firestoreId === firestoreId);
       if (!order) return;
 
       const { jsPDF } = window.jspdf;
@@ -243,7 +244,7 @@
       docPDF.text("Tel: 1234-5678 | RUC: 12-3456789-0", 40, 18, { align: "center" });
       docPDF.text("----------------------------------------", 40, 22, { align: "center" });
       
-      docPDF.text(`FACTURA: ${order.id}`, 5, 26);
+      docPDF.text(`FACTURA: ${order.id || 'ORD-000'}`, 5, 26);
       docPDF.text(`FECHA: ${new Date().toLocaleDateString()}  MESA: ${order.table}`, 5, 30);
       docPDF.text(`HORA: ${order.time}`, 5, 34);
       docPDF.text("----------------------------------------", 40, 38, { align: "center" });
@@ -274,10 +275,10 @@
       docPDF.text("----------------------------------------", 40, y + 20, { align: "center" });
       docPDF.text("¡GRACIAS POR SU COMPRA!", 40, y + 24, { align: "center" });
 
-      docPDF.save(`Factura-${order.id}.pdf`);
+      docPDF.save(`Factura-${order.id || 'ticket'}.pdf`);
     }
 
-    // Eventos para el Modal de Caja
+    // Eventos Modal de Caja
     document.getElementById('btn-cash-modal').addEventListener('click', () => {
       let totalOrders = cachedOrders.filter(o => o.status === 'completed').length;
       let totalIncome = cachedOrders.filter(o => o.status === 'completed').reduce((acc, o) => acc + (o.total || 0), 0);
