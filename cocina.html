@@ -226,57 +226,112 @@
       }
     });
 
-    // FUNCIÓN GENERADORAS DE TICKET PDF USANDO ID REAL
-    function generateTicketPDF(firestoreId) {
-      const order = cachedOrders.find(o => o.firestoreId === firestoreId);
-      if (!order) return;
+// FUNCIÓN GENERADORA DE TICKET PDF (columnas por coordenadas)
+function generateTicketPDF(firestoreId) {
+  const order = cachedOrders.find(o => o.firestoreId === firestoreId);
+  if (!order) return;
 
-      const { jsPDF } = window.jspdf;
-      const docPDF = new jsPDF({ unit: 'mm', format: [80, 160] });
+  const { jsPDF } = window.jspdf;
+  const L = 5;      // margen izquierdo
+  const R = 75;     // margen derecho
+  const CX = 40;    // centro
+  const COL_NAME = 14;   // inicio de descripción
+  const COL_UNIT = 54;   // precio unitario (alineado a la derecha)
 
-      docPDF.setFont("courier", "bold");
-      docPDF.setFontSize(12);
-      docPDF.text("GOURMET TAP", 40, 10, { align: "center" });
-      
-      docPDF.setFont("courier", "normal");
-      docPDF.setFontSize(8);
-      docPDF.text("HAMBURGUESERÍA ARTESANAL", 40, 14, { align: "center" });
-      docPDF.text("Tel: 1234-5678 | RUC: 12-3456789-0", 40, 18, { align: "center" });
-      docPDF.text("----------------------------------------", 40, 22, { align: "center" });
-      
-      docPDF.text(`FACTURA: ${order.id || 'ORD-000'}`, 5, 26);
-      docPDF.text(`FECHA: ${new Date().toLocaleDateString()}  MESA: ${order.table}`, 5, 30);
-      docPDF.text(`HORA: ${order.time}`, 5, 34);
-      docPDF.text("----------------------------------------", 40, 38, { align: "center" });
-      
-      docPDF.text("CANT. DESCRIPCION        P.UNIT.  TOTAL", 5, 42);
-      docPDF.text("----------------------------------------", 40, 46, { align: "center" });
+  // Medir líneas de cada producto para calcular el alto del PDF
+  const medidor = new jsPDF({ unit: 'mm', format: [80, 200] });
+  medidor.setFont("courier", "normal");
+  medidor.setFontSize(8);
+  const rows = order.items.map(i => ({
+    ...i,
+    lines: medidor.splitTextToSize(i.name, 27)
+  }));
+  const itemsHeight = rows.reduce((acc, r) => acc + r.lines.length * 4 + 2, 0);
+  const height = 100 + itemsHeight + (order.contact ? 5 : 0);
 
-      let y = 50;
-      order.items.forEach(i => {
-        const line = `${i.quantity}x   ${i.name.substring(0, 14).padEnd(14)}  $${i.price.toFixed(2)}  $${(i.price * i.quantity).toFixed(2)}`;
-        docPDF.text(line, 5, y);
-        y += 5;
-      });
+  const docPDF = new jsPDF({ unit: 'mm', format: [80, height] });
+  const line = (y) => docPDF.line(L, y, R, y);
 
-      docPDF.text("----------------------------------------", 40, y + 2, { align: "center" });
-      const subtotal = order.total / 1.10;
-      const iva = order.total - subtotal;
+  // Encabezado
+  let y = 10;
+  docPDF.setFont("courier", "bold");
+  docPDF.setFontSize(12);
+  docPDF.text("GOURMET TAP", CX, y, { align: "center" });
 
-      docPDF.text(`SUBTOTAL:                      $${subtotal.toFixed(2)}`, 5, y + 6);
-      docPDF.text(`IVA (10%):                     $${iva.toFixed(2)}`, 5, y + 10);
-      
-      docPDF.setFont("courier", "bold");
-      docPDF.setFontSize(10);
-      docPDF.text(`TOTAL:                         $${order.total.toFixed(2)}`, 5, y + 16);
-      
-      docPDF.setFont("courier", "normal");
-      docPDF.setFontSize(8);
-      docPDF.text("----------------------------------------", 40, y + 20, { align: "center" });
-      docPDF.text("¡GRACIAS POR SU COMPRA!", 40, y + 24, { align: "center" });
+  docPDF.setFont("courier", "normal");
+  docPDF.setFontSize(8);
+  y += 5;
+  docPDF.text("HAMBURGUESERÍA ARTESANAL", CX, y, { align: "center" });
+  y += 4;
+  docPDF.text("Tel: 1234-5678 | RUC: 12-3456789-0", CX, y, { align: "center" });
+  y += 3;
+  line(y);
 
-      docPDF.save(`Factura-${order.id || 'ticket'}.pdf`);
-    }
+  // Datos de la factura
+  y += 5;
+  docPDF.text(`FACTURA: ${order.id || 'ORD-000'}`, L, y);
+  y += 4;
+  docPDF.text(`FECHA: ${new Date().toLocaleDateString()}`, L, y);
+  docPDF.text(`${order.table}`, R, y, { align: "right" });
+  y += 4;
+  docPDF.text(`HORA: ${order.time}`, L, y);
+  if (order.contact) {
+    y += 4;
+    docPDF.text(`ENVÍO A: ${order.contact.substring(0, 28)}`, L, y);
+  }
+  y += 3;
+  line(y);
+
+  // Cabecera de la tabla
+  y += 5;
+  docPDF.setFont("courier", "bold");
+  docPDF.text("CANT", L, y);
+  docPDF.text("DESCRIPCIÓN", COL_NAME, y);
+  docPDF.text("P.UNIT", COL_UNIT, y, { align: "right" });
+  docPDF.text("TOTAL", R, y, { align: "right" });
+  y += 2;
+  line(y);
+
+  // Productos
+  docPDF.setFont("courier", "normal");
+  y += 5;
+  rows.forEach(r => {
+    docPDF.text(`${r.quantity}x`, L, y);
+    docPDF.text(r.lines, COL_NAME, y);
+    docPDF.text(`$${r.price.toFixed(2)}`, COL_UNIT, y, { align: "right" });
+    docPDF.text(`$${(r.price * r.quantity).toFixed(2)}`, R, y, { align: "right" });
+    y += r.lines.length * 4 + 2;
+  });
+
+  line(y);
+
+  // Totales
+  const subtotal = order.total / 1.10;
+  const iva = order.total - subtotal;
+
+  y += 5;
+  docPDF.text("SUBTOTAL:", L, y);
+  docPDF.text(`$${subtotal.toFixed(2)}`, R, y, { align: "right" });
+  y += 5;
+  docPDF.text("IVA (10%):", L, y);
+  docPDF.text(`$${iva.toFixed(2)}`, R, y, { align: "right" });
+
+  y += 7;
+  docPDF.setFont("courier", "bold");
+  docPDF.setFontSize(10);
+  docPDF.text("TOTAL:", L, y);
+  docPDF.text(`$${order.total.toFixed(2)}`, R, y, { align: "right" });
+
+  // Pie
+  docPDF.setFont("courier", "normal");
+  docPDF.setFontSize(8);
+  y += 4;
+  line(y);
+  y += 5;
+  docPDF.text("¡GRACIAS POR SU COMPRA!", CX, y, { align: "center" });
+
+  docPDF.save(`Factura-${order.id || 'ticket'}.pdf`);
+}
 
     // Eventos Modal de Caja
     document.getElementById('btn-cash-modal').addEventListener('click', () => {
