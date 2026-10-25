@@ -33,7 +33,7 @@
       </div>
     </div>
     <div class="flex items-center gap-3">
-      <button onclick="openCashCloseModal()" class="bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-400 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+      <button id="btn-cash-modal" class="bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-400 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
         <i class="fa-solid fa-file-invoice-dollar"></i>
         <span>Cierre de Caja Diario</span>
       </button>
@@ -78,7 +78,7 @@
         <h3 class="font-bold text-sm text-white flex items-center gap-2">
           <i class="fa-solid fa-cash-register text-brand-500"></i> Resumen Cierre de Caja
         </h3>
-        <button onclick="closeCashCloseModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs">
+        <button id="btn-close-modal" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -100,7 +100,7 @@
           <span id="cash-total-income" class="font-black text-emerald-400 text-sm">$0.00</span>
         </div>
       </div>
-      <button onclick="closeCashCloseModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-xs transition">Cerrar Ventana</button>
+      <button id="btn-close-modal-bottom" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-xs transition">Cerrar Ventana</button>
     </div>
   </div>
 
@@ -187,43 +187,51 @@
           </div>
           <div class="flex gap-2 pt-2 border-t border-slate-800">
             ${!isCompleted ? 
-              `<button onclick="completeOrder('${order.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition">Completar y Facturar</button>` : 
-              `<button onclick="generateTicketPDF('${order.id}')" class="flex-1 bg-brand-600 hover:bg-brand-500 text-white font-bold py-2 rounded-xl text-xs transition"><i class="fa-solid fa-file-pdf"></i> Imprimir Factura</button>`
+              `<button data-action="complete" data-id="${order.id}" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition">Completar y Facturar</button>` : 
+              `<button data-action="ticket" data-id="${order.id}" class="flex-1 bg-brand-600 hover:bg-brand-500 text-white font-bold py-2 rounded-xl text-xs transition"><i class="fa-solid fa-file-pdf"></i> Imprimir Factura</button>`
             }
-            <button onclick="deleteOrder('${order.id}')" class="bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 px-3 py-2 rounded-xl text-xs transition"><i class="fa-solid fa-trash"></i></button>
+            <button data-action="delete" data-id="${order.id}" class="bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 px-3 py-2 rounded-xl text-xs transition"><i class="fa-solid fa-trash"></i></button>
           </div>
         `;
         ordersGrid.appendChild(card);
       });
     });
 
-    window.completeOrder = async function(orderId) {
-      try {
-        const orderRef = doc(db, "orders", orderId);
-        await updateDoc(orderRef, { status: 'completed' });
-        generateTicketPDF(orderId); // Genera el PDF automáticamente al completar
-      } catch (e) {
-        console.error("Error al completar:", e);
-      }
-    };
+    // Delegación de eventos segura para los botones de las tarjetas
+    ordersGrid.addEventListener('click', async (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const action = btn.getAttribute('data-action');
+      const orderId = btn.getAttribute('data-id');
 
-    window.deleteOrder = async function(orderId) {
-      if (confirm('¿Eliminar este pedido del registro?')) {
+      if (action === 'complete') {
         try {
-          await deleteDoc(doc(db, "orders", orderId));
-        } catch (e) {
-          console.error("Error al eliminar:", e);
+          const orderRef = doc(db, "orders", orderId);
+          await updateDoc(orderRef, { status: 'completed' });
+          generateTicketPDF(orderId);
+        } catch (err) {
+          console.error("Error al completar:", err);
+        }
+      } else if (action === 'ticket') {
+        generateTicketPDF(orderId);
+      } else if (action === 'delete') {
+        if (confirm('¿Eliminar este pedido del registro?')) {
+          try {
+            await deleteDoc(doc(db, "orders", orderId));
+          } catch (err) {
+            console.error("Error al eliminar:", err);
+          }
         }
       }
-    };
+    });
 
-    // FUNCIÓN GENERADORA DE TICKET PDF (Estilo factura térmica)
-    window.generateTicketPDF = function(orderId) {
+    // FUNCIÓN GENERADORA DE TICKET PDF
+    function generateTicketPDF(orderId) {
       const order = cachedOrders.find(o => o.id === orderId);
       if (!order) return;
 
       const { jsPDF } = window.jspdf;
-      const docPDF = new jsPDF({ unit: 'mm', format: [80, 160] }); // Formato tipo ticket térmico
+      const docPDF = new jsPDF({ unit: 'mm', format: [80, 160] });
 
       docPDF.setFont("courier", "bold");
       docPDF.setFontSize(12);
@@ -231,7 +239,7 @@
       
       docPDF.setFont("courier", "normal");
       docPDF.setFontSize(8);
-      docPDF.text("HAMBURGESERÍA ARTESANAL", 40, 14, { align: "center" });
+      docPDF.text("HAMBURGUESERÍA ARTESANAL", 40, 14, { align: "center" });
       docPDF.text("Tel: 1234-5678 | RUC: 12-3456789-0", 40, 18, { align: "center" });
       docPDF.text("----------------------------------------", 40, 22, { align: "center" });
       
@@ -267,9 +275,10 @@
       docPDF.text("¡GRACIAS POR SU COMPRA!", 40, y + 24, { align: "center" });
 
       docPDF.save(`Factura-${order.id}.pdf`);
-    };
+    }
 
-    window.openCashCloseModal = function() {
+    // Eventos para el Modal de Caja
+    document.getElementById('btn-cash-modal').addEventListener('click', () => {
       let totalOrders = cachedOrders.filter(o => o.status === 'completed').length;
       let totalIncome = cachedOrders.filter(o => o.status === 'completed').reduce((acc, o) => acc + (o.total || 0), 0);
       let subtotal = totalIncome / 1.10;
@@ -281,11 +290,14 @@
       document.getElementById('cash-total-income').textContent = `$${totalIncome.toFixed(2)}`;
 
       document.getElementById('cash-modal').classList.remove('opacity-0', 'pointer-events-none');
-    };
+    });
 
-    window.closeCashCloseModal = function() {
+    const closeModal = () => {
       document.getElementById('cash-modal').classList.add('opacity-0', 'pointer-events-none');
     };
+
+    document.getElementById('btn-close-modal').addEventListener('click', closeModal);
+    document.getElementById('btn-close-modal-bottom').addEventListener('click', closeModal);
   </script>
 </body>
 </html>
