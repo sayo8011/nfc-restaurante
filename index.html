@@ -507,71 +507,75 @@
     }
 
     // 2. GENERACIÓN DE PDF LIMPIO (ANCHO 100mm O FORMATO CARTA PARA QUE NO HAYA CORTES DE TEXTO)
+    // 2. GENERADOR DE PDF LIMPIO Y ALINEADO SIN CORTES
     function generateCleanPDF(order) {
       const { jsPDF } = window.jspdf;
-      const docPDF = new jsPDF({ unit: 'mm', format: [100, 180] }); // 100mm de ancho para que entre holgado
+      const docPDF = new jsPDF({ unit: 'mm', format: [80, 180] }); // Volvemos a 80mm pero con coordenadas limpias
 
       docPDF.setFont("courier", "bold");
-      docPDF.setFontSize(14);
-      docPDF.text("GOURMET TAP", 50, 12, { align: "center" });
+      docPDF.setFontSize(12);
+      docPDF.text("GOURMET TAP", 40, 10, { align: "center" });
       
       docPDF.setFont("courier", "normal");
-      docPDF.setFontSize(9);
-      docPDF.text("HAMBURGUESERÍA ARTESANAL", 50, 17, { align: "center" });
-      docPDF.text("Tel: 1234-5678 | RUC: 12-3456789-0", 50, 21, { align: "center" });
-      docPDF.text("------------------------------------------------", 50, 25, { align: "center" });
+      docPDF.setFontSize(8);
+      docPDF.text("HAMBURGUESERÍA ARTESANAL", 40, 14, { align: "center" });
+      docPDF.text("Tel: 1234-5678 | RUC: 12-3456789-0", 40, 18, { align: "center" });
+      docPDF.text("----------------------------------------", 40, 22, { align: "center" });
       
-      docPDF.text(`FACTURA: ${order.id}`, 8, 30);
-      docPDF.text(`FECHA: ${new Date().toLocaleDateString()}   MESA: ${order.table}`, 8, 35);
-      docPDF.text(`HORA: ${order.time}`, 8, 40);
+      docPDF.text(`FACTURA: ${order.id}`, 4, 26);
+      docPDF.text(`FECHA: ${new Date().toLocaleDateString()}   MESA: ${order.table}`, 4, 30);
+      docPDF.text(`HORA: ${order.time}`, 4, 34);
       if(order.contact) {
-        docPDF.text(`ENVÍO A: ${order.contact.substring(0, 32)}`, 8, 45);
+        docPDF.text(`ENVÍO A: ${order.contact.substring(0, 30)}`, 4, 38);
       }
       
-      let y = order.contact ? 50 : 45;
-      docPDF.text("------------------------------------------------", 50, y, { align: "center" });
-      y += 5;
-      docPDF.setFont("courier", "bold");
-      docPDF.text("CANT   DESCRIPCIÓN              P.UNIT    TOTAL", 8, y);
+      let y = order.contact ? 42 : 38;
+      docPDF.text("----------------------------------------", 40, y, { align: "center" });
       y += 4;
+      
+      // Cabeceras de tabla fijas
+      docPDF.setFont("courier", "bold");
+      docPDF.text("CANT  DESCRIPCIÓN          P.UNIT   TOTAL", 4, y);
+      y += 3;
       docPDF.setFont("courier", "normal");
-      docPDF.text("------------------------------------------------", 50, y, { align: "center" });
+      docPDF.text("----------------------------------------", 40, y, { align: "center" });
       y += 5;
 
+      // Iterar productos con límite de caracteres para evitar solapamientos
       order.items.forEach(i => {
-        const qtyStr = `${i.quantity}x`.padEnd(6);
-        const nameStr = i.name.substring(0, 20).padEnd(22);
-        const priceStr = `$${i.price.toFixed(2)}`.padStart(8);
-        const totalStr = `$${(i.price * i.quantity).toFixed(2)}`.padStart(8);
+        const qty = `${i.quantity}x`.padEnd(5);
+        const name = i.name.substring(0, 14).padEnd(15);
+        const price = `$${i.price.toFixed(2)}`.padStart(7);
+        const total = `$${(i.price * i.quantity).toFixed(2)}`.padStart(8);
         
-        docPDF.text(`${qtyStr}${nameStr}${priceStr}${totalStr}`, 8, y);
+        docPDF.text(`${qty}${name}${price}${total}`, 4, y);
         y += 6;
       });
 
-      docPDF.text("------------------------------------------------", 50, y, { align: "center" });
-      y += 6;
+      docPDF.text("----------------------------------------", 40, y, { align: "center" });
+      y += 5;
+      
       const subtotal = order.total / 1.10;
       const iva = order.total - subtotal;
 
-      docPDF.text(`SUBTOTAL:                             $${subtotal.toFixed(2)}`, 8, y);
+      docPDF.text(`SUBTOTAL:                      $${subtotal.toFixed(2)}`, 4, y);
       y += 5;
-      docPDF.text(`IVA (10%):                            $${iva.toFixed(2)}`, 8, y);
+      docPDF.text(`IVA (10%):                     $${iva.toFixed(2)}`, 4, y);
       y += 7;
       
       docPDF.setFont("courier", "bold");
-      docPDF.setFontSize(11);
-      docPDF.text(`TOTAL:                                $${order.total.toFixed(2)}`, 8, y);
+      docPDF.setFontSize(10);
+      docPDF.text(`TOTAL:                         $${order.total.toFixed(2)}`, 4, y);
       
       docPDF.setFont("courier", "normal");
-      docPDF.setFontSize(9);
-      y += 7;
-      docPDF.text("------------------------------------------------", 50, y, { align: "center" });
+      docPDF.setFontSize(8);
+      y += 8;
+      docPDF.text("----------------------------------------", 40, y, { align: "center" });
       y += 5;
-      docPDF.text("¡GRACIAS POR SU COMPRA!", 50, y, { align: "center" });
+      docPDF.text("¡GRACIAS POR SU COMPRA!", 40, y, { align: "center" });
 
       return docPDF;
     }
-
     // Botón Vista Previa HTML
     document.getElementById('preview-bill-btn').addEventListener('click', () => {
       if (!lastCompletedOrder) return;
