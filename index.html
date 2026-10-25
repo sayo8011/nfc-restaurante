@@ -7,12 +7,15 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+          fontFamily: { 
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            receipt: ['Space Mono', 'monospace']
+          },
           colors: { brand: { 500: '#f97316', 600: '#ea580c', 700: '#c2410c' } }
         }
       }
@@ -107,9 +110,9 @@
         <p id="cart-total-price" class="text-base font-extrabold text-white">$0.00</p>
       </div>
       <div class="flex items-center gap-2 flex-1 justify-end">
-        <button onclick="cancelCartSelection()" class="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5" title="Cancelar selección">
+        <button onclick="cancelCartSelection()" class="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
           <i class="fa-solid fa-trash-can"></i>
-          <span class="hidden sm:inline">Cancelar</span>
+          <span>Cancelar</span>
         </button>
         <button onclick="openCartModal()" class="bg-gradient-to-r from-brand-600 to-amber-500 hover:from-brand-500 hover:to-amber-400 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 text-xs transition-all active:scale-95 flex-1 max-w-[180px]">
           <i class="fa-solid fa-basket-shopping"></i>
@@ -120,7 +123,7 @@
     </div>
   </div>
 
-  <!-- Modal del Carrito con Opción de Envío (Correo / WhatsApp) -->
+  <!-- Modal del Carrito -->
   <div id="cart-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-end justify-center opacity-0 pointer-events-none transition-opacity duration-300">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-t-3xl p-5 shadow-2xl transform translate-y-full transition-transform duration-300 max-h-[90vh] flex flex-col">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
@@ -138,10 +141,9 @@
           <label class="block text-[11px] font-semibold text-slate-400 mb-1">Notas especiales:</label>
           <input type="text" id="order-notes" placeholder="Ej: Sin cebolla, extra salsa..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
         </div>
-        <!-- Simulación de Envío por Correo o WhatsApp -->
         <div>
           <label class="block text-[11px] font-semibold text-slate-400 mb-1">Recibir factura por Correo o WhatsApp (Opcional):</label>
-          <input type="text" id="client-contact" placeholder="Tus datos de contacto (ej: correo@mail.com / +57...)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+          <input type="text" id="client-contact" placeholder="Ej: correo@mail.com / +57..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
         </div>
       </div>
 
@@ -157,20 +159,22 @@
     </div>
   </div>
 
-  <!-- Modal Preview de Factura -->
+  <!-- Modal Preview de Factura (RECIBO FÍSICO ULTRA REALISTA) -->
   <div id="preview-modal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
-    <div class="bg-slate-900 border border-slate-800 max-w-sm w-full rounded-3xl p-5 shadow-2xl flex flex-col max-h-[90vh]">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
-        <h3 class="font-bold text-sm text-white"><i class="fa-solid fa-file-invoice text-brand-500"></i> Vista Previa de Factura</h3>
+    <div class="max-w-sm w-full flex flex-col max-h-[90vh]">
+      <div class="flex justify-between items-center mb-2 px-1">
+        <h3 class="font-bold text-xs text-slate-300 uppercase tracking-wider"><i class="fa-solid fa-file-invoice text-brand-500"></i> Comprobante Digital</h3>
         <button onclick="closePreviewModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-      <!-- Contenedor iframe de previsualización PDF -->
-      <div class="flex-1 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 mb-3 min-h-[350px]">
-        <iframe id="pdf-preview-frame" class="w-full h-full"></iframe>
+      
+      <!-- Contenedor del Ticket de Papel -->
+      <div class="flex-1 overflow-y-auto bg-white text-black p-6 rounded-t-2xl shadow-2xl font-receipt text-xs leading-relaxed border-b-2 border-dashed border-gray-300" id="receipt-paper">
+        <!-- Renderizado dinámico -->
       </div>
-      <button onclick="downloadPDFFromPreview()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-lg">
+
+      <button onclick="downloadPDFFromPreview()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-b-2xl text-xs transition flex items-center justify-center gap-2 shadow-xl">
         <i class="fa-solid fa-download"></i> Descargar Factura PDF
       </button>
     </div>
@@ -216,7 +220,7 @@
   <!-- FIREBASE SDKs & LOGIC -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, onSnapshot, updateDoc, doc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBkY9Hthp4DBfg5fDRul2A5ReQhwBE00LM",
@@ -328,7 +332,6 @@
       renderCartModalItems();
     }
 
-    // Botón Cancelar / Vaciar selección actual
     window.cancelCartSelection = function() {
       if (confirm('¿Deseas cancelar y vaciar los platillos seleccionados?')) {
         cart = [];
@@ -400,23 +403,49 @@
 
       const orderNotes = document.getElementById('order-notes').value.trim();
       const clientContact = document.getElementById('client-contact').value.trim();
-      const orderId = 'ORD-' + Math.floor(1000 + Math.random() * 9000);
-      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      const newOrder = {
-        id: orderId,
-        table: `Mesa ${currentTable}`,
-        time: timeStr,
-        items: cart.map(i => ({ name: i.product.name, quantity: i.quantity, price: i.product.price })),
-        notes: orderNotes,
-        contact: clientContact,
-        status: 'pending',
-        total: cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0),
-        createdAt: new Date()
-      };
+      const tableStr = `Mesa ${currentTable}`;
+      
+      const newItems = cart.map(i => ({ name: i.product.name, quantity: i.quantity, price: i.product.price }));
+      const additionalTotal = cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
 
       try {
-        await addDoc(collection(db, "orders"), newOrder);
+        const qActive = query(collection(db, "orders"), where("table", "==", tableStr), where("status", "==", "pending"));
+        const querySnapshot = await getDocs(qActive);
+
+        if (!querySnapshot.empty) {
+          const existingDoc = querySnapshot.docs[0];
+          const existingData = existingDoc.data();
+          const updatedItems = [...existingData.items, ...newItems];
+          const updatedTotal = existingData.total + additionalTotal;
+          const combinedNotes = orderNotes ? (existingData.notes ? `${existingData.notes} / ${orderNotes}` : orderNotes) : existingData.notes;
+
+          const orderRef = doc(db, "orders", existingDoc.id);
+          await updateDoc(orderRef, {
+            items: updatedItems,
+            total: updatedTotal,
+            notes: combinedNotes,
+            contact: clientContact || existingData.contact
+          });
+
+        } else {
+          const orderId = 'ORD-' + Math.floor(1000 + Math.random() * 9000);
+          const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+          const newOrder = {
+            id: orderId,
+            table: tableStr,
+            time: timeStr,
+            items: newItems,
+            notes: orderNotes,
+            contact: clientContact,
+            status: 'pending',
+            total: additionalTotal,
+            createdAt: new Date()
+          };
+
+          await addDoc(collection(db, "orders"), newOrder);
+        }
+
         cart = [];
         document.getElementById('order-notes').value = '';
         document.getElementById('client-contact').value = '';
@@ -425,84 +454,128 @@
         document.getElementById('success-modal').classList.remove('opacity-0', 'pointer-events-none');
       } catch (e) {
         console.error("Error al enviar pedido: ", e);
-        alert("Hubo un error al enviar el pedido. Revisa tu conexión.");
+        alert("Hubo un error al enviar el pedido.");
       }
-    }
+    };
 
     window.closeSuccessModal = function() {
       document.getElementById('success-modal').classList.add('opacity-0', 'pointer-events-none');
     }
 
-    // GENERADOR DE FACTURA PDF CON ANCHO CORREGIDO (Evita cortes de texto)
-    function createPDFInstance(order) {
-      const { jsPDF } = window.jspdf;
-      const docPDF = new jsPDF({ unit: 'mm', format: [80, 160] });
-
-      docPDF.setFont("courier", "bold");
-      docPDF.setFontSize(12);
-      docPDF.text("GOURMET TAP", 40, 10, { align: "center" });
-      
-      docPDF.setFont("courier", "normal");
-      docPDF.setFontSize(8);
-      docPDF.text("HAMBURGUESERÍA ARTESANAL", 40, 14, { align: "center" });
-      docPDF.text("Tel: 1234-5678 | RUC: 12-3456789-0", 40, 18, { align: "center" });
-      docPDF.text("----------------------------------------", 40, 22, { align: "center" });
-      
-      docPDF.text(`FACTURA: ${order.id}`, 4, 26);
-      docPDF.text(`FECHA: ${new Date().toLocaleDateString()}  MESA: ${order.table}`, 4, 30);
-      docPDF.text(`HORA: ${order.time}`, 4, 34);
-      if(order.contact) {
-        docPDF.text(`ENVÍO A: ${order.contact.substring(0, 28)}`, 4, 38);
-      }
-      docPDF.text("----------------------------------------", 40, order.contact ? 42 : 38, { align: "center" });
-      
-      let y = order.contact ? 46 : 42;
-      docPDF.text("CANT  DESCRIPCIÓN          P.UNIT  TOTAL", 4, y);
-      y += 4;
-      docPDF.text("----------------------------------------", 40, y, { align: "center" });
-      y += 4;
-
-      order.items.forEach(i => {
-        // Ajustamos los anchos de columna para que quepan completos sin salirse
-        const qtyStr = `${i.quantity}x`.padEnd(5);
-        const nameStr = i.name.substring(0, 15).padEnd(17);
-        const priceStr = `$${i.price.toFixed(2)}`.padStart(7);
-        const totalStr = `$${(i.price * i.quantity).toFixed(2)}`.padStart(7);
-        
-        docPDF.text(`${qtyStr}${nameStr}${priceStr}${totalStr}`, 4, y);
-        y += 5;
-      });
-
-      docPDF.text("----------------------------------------", 40, y, { align: "center" });
-      y += 5;
+    // 1. DIBUJAR VISTA PREVIA COMO TICKET HTML REALISTA EN PANTALLA
+    function renderHTMLReceipt(order) {
       const subtotal = order.total / 1.10;
       const iva = order.total - subtotal;
 
-      docPDF.text(`SUBTOTAL:                      $${subtotal.toFixed(2)}`, 4, y);
-      y += 4;
-      docPDF.text(`IVA (10%):                     $${iva.toFixed(2)}`, 4, y);
-      y += 6;
-      
+      let itemsRows = order.items.map(i => `
+        <div class="flex justify-between py-1 border-b border-gray-100">
+          <span class="w-8 text-left font-bold">${i.quantity}x</span>
+          <span class="flex-1 text-left px-1">${i.name}</span>
+          <span class="w-14 text-right font-bold">$${(i.price * i.quantity).toFixed(2)}</span>
+        </div>
+      `).join('');
+
+      return `
+        <div class="text-center font-bold text-sm uppercase tracking-wider mb-1">GOURMET TAP</div>
+        <div class="text-center text-[10px] text-gray-600 mb-3">
+          HAMBURGUESERÍA ARTESANAL<br>
+          Tel: 1234-5678 | RUC: 12-3456789-0
+        </div>
+        <div class="border-t border-b border-dashed border-gray-400 py-2 my-2 text-[11px]">
+          <div><strong>FACTURA:</strong> ${order.id || 'ORD-000'}</div>
+          <div><strong>FECHA:</strong> ${new Date().toLocaleDateString()} &nbsp; <strong>MESA:</strong> ${order.table}</div>
+          <div><strong>HORA:</strong> ${order.time}</div>
+          ${order.contact ? `<div class="truncate"><strong>ENVÍO:</strong> ${order.contact}</div>` : ''}
+        </div>
+        <div class="font-bold text-[10px] text-gray-500 uppercase border-b border-gray-300 pb-1 mb-1 flex justify-between">
+          <span>CANT &nbsp; DESCRIPCIÓN</span>
+          <span>TOTAL</span>
+        </div>
+        <div class="mb-3">${itemsRows}</div>
+        <div class="border-t border-gray-300 pt-2 text-right space-y-1">
+          <div class="flex justify-between"><span>SUBTOTAL:</span><span>$${subtotal.toFixed(2)}</span></div>
+          <div class="flex justify-between"><span>IVA (10%):</span><span>$${iva.toFixed(2)}</span></div>
+          <div class="flex justify-between font-bold text-sm pt-1 border-t border-gray-400 mt-1">
+            <span>TOTAL:</span>
+            <span>$${order.total.toFixed(2)}</span>
+          </div>
+        </div>
+        <div class="text-center text-[10px] text-gray-500 mt-5 pt-3 border-t border-dashed border-gray-300">
+          ¡GRACIAS POR SU COMPRA!
+        </div>
+      `;
+    }
+
+    // 2. GENERACIÓN DE PDF LIMPIO (ANCHO 100mm O FORMATO CARTA PARA QUE NO HAYA CORTES DE TEXTO)
+    function generateCleanPDF(order) {
+      const { jsPDF } = window.jspdf;
+      const docPDF = new jsPDF({ unit: 'mm', format: [100, 180] }); // 100mm de ancho para que entre holgado
+
       docPDF.setFont("courier", "bold");
-      docPDF.setFontSize(10);
-      docPDF.text(`TOTAL:                         $${order.total.toFixed(2)}`, 4, y);
+      docPDF.setFontSize(14);
+      docPDF.text("GOURMET TAP", 50, 12, { align: "center" });
       
       docPDF.setFont("courier", "normal");
-      docPDF.setFontSize(8);
-      y += 6;
-      docPDF.text("----------------------------------------", 40, y, { align: "center" });
+      docPDF.setFontSize(9);
+      docPDF.text("HAMBURGUESERÍA ARTESANAL", 50, 17, { align: "center" });
+      docPDF.text("Tel: 1234-5678 | RUC: 12-3456789-0", 50, 21, { align: "center" });
+      docPDF.text("------------------------------------------------", 50, 25, { align: "center" });
+      
+      docPDF.text(`FACTURA: ${order.id}`, 8, 30);
+      docPDF.text(`FECHA: ${new Date().toLocaleDateString()}   MESA: ${order.table}`, 8, 35);
+      docPDF.text(`HORA: ${order.time}`, 8, 40);
+      if(order.contact) {
+        docPDF.text(`ENVÍO A: ${order.contact.substring(0, 32)}`, 8, 45);
+      }
+      
+      let y = order.contact ? 50 : 45;
+      docPDF.text("------------------------------------------------", 50, y, { align: "center" });
+      y += 5;
+      docPDF.setFont("courier", "bold");
+      docPDF.text("CANT   DESCRIPCIÓN              P.UNIT    TOTAL", 8, y);
       y += 4;
-      docPDF.text("¡GRACIAS POR SU COMPRA!", 40, y, { align: "center" });
+      docPDF.setFont("courier", "normal");
+      docPDF.text("------------------------------------------------", 50, y, { align: "center" });
+      y += 5;
+
+      order.items.forEach(i => {
+        const qtyStr = `${i.quantity}x`.padEnd(6);
+        const nameStr = i.name.substring(0, 20).padEnd(22);
+        const priceStr = `$${i.price.toFixed(2)}`.padStart(8);
+        const totalStr = `$${(i.price * i.quantity).toFixed(2)}`.padStart(8);
+        
+        docPDF.text(`${qtyStr}${nameStr}${priceStr}${totalStr}`, 8, y);
+        y += 6;
+      });
+
+      docPDF.text("------------------------------------------------", 50, y, { align: "center" });
+      y += 6;
+      const subtotal = order.total / 1.10;
+      const iva = order.total - subtotal;
+
+      docPDF.text(`SUBTOTAL:                             $${subtotal.toFixed(2)}`, 8, y);
+      y += 5;
+      docPDF.text(`IVA (10%):                            $${iva.toFixed(2)}`, 8, y);
+      y += 7;
+      
+      docPDF.setFont("courier", "bold");
+      docPDF.setFontSize(11);
+      docPDF.text(`TOTAL:                                $${order.total.toFixed(2)}`, 8, y);
+      
+      docPDF.setFont("courier", "normal");
+      docPDF.setFontSize(9);
+      y += 7;
+      docPDF.text("------------------------------------------------", 50, y, { align: "center" });
+      y += 5;
+      docPDF.text("¡GRACIAS POR SU COMPRA!", 50, y, { align: "center" });
 
       return docPDF;
     }
 
-    // Botón Vista Previa (Preview)
+    // Botón Vista Previa HTML
     document.getElementById('preview-bill-btn').addEventListener('click', () => {
       if (!lastCompletedOrder) return;
-      const docPDF = createPDFInstance(lastCompletedOrder);
-      const pdfBlobUrl = docPDF.output('datauristring');
-      document.getElementById('pdf-preview-frame').src = pdfBlobUrl;
+      document.getElementById('receipt-paper').innerHTML = renderHTMLReceipt(lastCompletedOrder);
       document.getElementById('preview-modal').classList.remove('opacity-0', 'pointer-events-none');
     });
 
@@ -512,14 +585,14 @@
 
     window.downloadPDFFromPreview = function() {
       if (!lastCompletedOrder) return;
-      const docPDF = createPDFInstance(lastCompletedOrder);
+      const docPDF = generateCleanPDF(lastCompletedOrder);
       docPDF.save(`Factura-${lastCompletedOrder.id}.pdf`);
     };
 
     // Botón Descargar Directo
     document.getElementById('download-bill-btn').addEventListener('click', () => {
       if (!lastCompletedOrder) return;
-      const docPDF = createPDFInstance(lastCompletedOrder);
+      const docPDF = generateCleanPDF(lastCompletedOrder);
       docPDF.save(`Factura-${lastCompletedOrder.id}.pdf`);
     });
   </script>
