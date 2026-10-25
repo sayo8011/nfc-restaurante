@@ -6,6 +6,7 @@
   <title>Gourmet Tap - Menú Digital</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
@@ -57,6 +58,19 @@
         </span>
         <h2 class="text-lg font-bold text-white mb-0.5">¡Hola, bienvenido! 👋</h2>
         <p class="text-xs text-slate-400">Selecciona tus platillos y envíalos directo a la cocina.</p>
+      </div>
+    </div>
+
+    <!-- Estado del Pedido / Factura en Vivo -->
+    <div id="order-status-banner" class="hidden rounded-2xl bg-emerald-500/10 border border-emerald-500/30 p-4 mb-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider"><i class="fa-solid fa-circle-check"></i> Pedido Listo / Entregado</span>
+          <h4 class="text-xs font-bold text-white mt-0.5">¡Tu comida está lista!</h4>
+        </div>
+        <button id="download-bill-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-lg">
+          <i class="fa-solid fa-file-pdf"></i> Ver Factura PDF
+        </button>
       </div>
     </div>
 
@@ -163,7 +177,7 @@
   <!-- FIREBASE SDKs & LOGIC -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBkY9Hthp4DBfg5fDRul2A5ReQhwBE00LM",
@@ -189,6 +203,7 @@
 
     let currentTable = '4';
     let cart = [];
+    let lastCompletedOrder = null;
 
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -199,7 +214,22 @@
       document.getElementById('modal-table-num').textContent = currentTable;
       renderProducts('todos');
       updateCartUI();
+      listenToTableOrders();
     });
+
+    // Escucha en tiempo real si el pedido de esta mesa fue completado por la cocina
+    function listenToTableOrders() {
+      const q = query(collection(db, "orders"));
+      onSnapshot(q, (snapshot) => {
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.table === `Mesa ${currentTable}` && data.status === 'completed') {
+            lastCompletedOrder = { id: docSnap.id, ...data };
+            document.getElementById('order-status-banner').classList.remove('hidden');
+          }
+        });
+      });
+    }
 
     window.toggleWifiModal = function(open) {
       const modal = document.getElementById('wifi-modal');
@@ -353,6 +383,58 @@
     window.closeSuccessModal = function() {
       document.getElementById('success-modal').classList.add('opacity-0', 'pointer-events-none');
     }
+
+    // DESCARGAR FACTURA DESDE EL CELULAR
+    document.getElementById('download-bill-btn').addEventListener('click', () => {
+      if (!lastCompletedOrder) return;
+      const order = lastCompletedOrder;
+      
+      const { jsPDF } = window.jspdf;
+      const docPDF = new jsPDF({ unit: 'mm', format: [80, 160] });
+
+      docPDF.setFont("courier", "bold");
+      docPDF.setFontSize(12);
+      docPDF.text("GOURMET TAP", 40, 10, { align: "center" });
+      
+      docPDF.setFont("courier", "normal");
+      docPDF.setFontSize(8);
+      docPDF.text("HAMBURGUESERÍA ARTESANAL", 40, 14, { align: "center" });
+      docPDF.text("Tel: 1234-5678 | RUC: 12-3456789-0", 40, 18, { align: "center" });
+      docPDF.text("----------------------------------------", 40, 22, { align: "center" });
+      
+      docPDF.text(`FACTURA: ${order.id}`, 5, 26);
+      docPDF.text(`FECHA: ${new Date().toLocaleDateString()}  MESA: ${order.table}`, 5, 30);
+      docPDF.text(`HORA: ${order.time}`, 5, 34);
+      docPDF.text("----------------------------------------", 40, 38, { align: "center" });
+      
+      docPDF.text("CANT. DESCRIPCION        P.UNIT.  TOTAL", 5, 42);
+      docPDF.text("----------------------------------------", 40, 46, { align: "center" });
+
+      let y = 50;
+      order.items.forEach(i => {
+        const line = `${i.quantity}x   ${i.name.substring(0, 14).padEnd(14)}  $${i.price.toFixed(2)}  $${(i.price * i.quantity).toFixed(2)}`;
+        docPDF.text(line, 5, y);
+        y += 5;
+      });
+
+      docPDF.text("----------------------------------------", 40, y + 2, { align: "center" });
+      const subtotal = order.total / 1.10;
+      const iva = order.total - subtotal;
+
+      docPDF.text(`SUBTOTAL:                      $${subtotal.toFixed(2)}`, 5, y + 6);
+      docPDF.text(`IVA (10%):                     $${iva.toFixed(2)}`, 5, y + 10);
+      
+      docPDF.setFont("courier", "bold");
+      docPDF.setFontSize(10);
+      docPDF.text(`TOTAL:                         $${order.total.toFixed(2)}`, 5, y + 16);
+      
+      docPDF.setFont("courier", "normal");
+      docPDF.setFontSize(8);
+      docPDF.text("----------------------------------------", 40, y + 20, { align: "center" });
+      docPDF.text("¡GRACIAS POR SU COMPRA!", 40, y + 24, { align: "center" });
+
+      docPDF.save(`Factura-${order.id}.pdf`);
+    });
   </script>
 </body>
 </html>

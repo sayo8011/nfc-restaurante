@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel de Cocina - Gourmet Tap</title>
+  <title>Panel de Cocina y Caja - Gourmet Tap</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
@@ -20,19 +21,23 @@
 </head>
 <body class="min-h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 p-6">
 
-  <!-- Header Cocina -->
+  <!-- Header Cocina y Caja -->
   <header class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center shadow-lg">
-        <i class="fa-solid fa-fire-burner text-white"></i>
+        <i class="fa-solid fa-cash-register text-white"></i>
       </div>
       <div>
-        <h1 class="font-black text-lg text-white">Panel de Cocina & Comandas</h1>
-        <p class="text-xs text-slate-400">Sincronizado en tiempo real con Firebase Firestore.</p>
+        <h1 class="font-black text-lg text-white">Panel de Cocina & Facturación</h1>
+        <p class="text-xs text-slate-400">Control de pedidos y cierre de caja en tiempo real.</p>
       </div>
     </div>
     <div class="flex items-center gap-3">
-      <span class="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs px-3 py-1.5 rounded-xl font-semibold">
+      <button onclick="openCashCloseModal()" class="bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-400 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+        <i class="fa-solid fa-file-invoice-dollar"></i>
+        <span>Cierre de Caja Diario</span>
+      </button>
+      <span class="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs px-3 py-2 rounded-xl font-semibold">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> En Línea
       </span>
     </div>
@@ -45,28 +50,61 @@
       <h3 id="stat-total" class="text-2xl font-black text-white">0</h3>
     </div>
     <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-      <p class="text-xs text-amber-400">Pendientes</p>
+      <p class="text-xs text-amber-400">Pendientes en Cocina</p>
       <h3 id="stat-pending" class="text-2xl font-black text-white">0</h3>
     </div>
     <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-      <p class="text-xs text-emerald-400">Completados</p>
-      <h3 id="stat-completed" class="text-2xl font-black text-white">0</h3>
+      <p class="text-xs text-emerald-400">Ventas Completadas (Caja)</p>
+      <h3 id="stat-sales" class="text-2xl font-black text-emerald-400">$0.00</h3>
     </div>
   </div>
 
   <!-- Contenedor de Órdenes -->
   <main class="flex-1">
-    <h2 class="text-sm font-bold text-slate-300 mb-4 uppercase tracking-wider">Órdenes Entrantes</h2>
+    <h2 class="text-sm font-bold text-slate-300 mb-4 uppercase tracking-wider">Órdenes Activas</h2>
     <div id="kitchen-orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div id="empty-state" class="col-span-full py-16 text-center border-2 border-dashed border-slate-800 rounded-3xl">
         <i class="fa-solid fa-receipt text-4xl text-slate-600 mb-3"></i>
         <h3 class="text-sm font-bold text-slate-400">No hay pedidos activos</h3>
-        <p class="text-xs text-slate-600 mt-1">Los pedidos realizados desde las mesas aparecerán aquí al instante.</p>
+        <p class="text-xs text-slate-600 mt-1">Los pedidos de las mesas aparecerán aquí al instante.</p>
       </div>
     </div>
   </main>
 
-  <!-- FIREBASE LISTENER -->
+  <!-- Modal Cierre de Caja -->
+  <div id="cash-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-slate-900 border border-slate-800 max-w-md w-full rounded-3xl p-6 shadow-2xl relative">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
+        <h3 class="font-bold text-sm text-white flex items-center gap-2">
+          <i class="fa-solid fa-cash-register text-brand-500"></i> Resumen Cierre de Caja
+        </h3>
+        <button onclick="closeCashCloseModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="space-y-3 mb-5 text-xs">
+        <div class="flex justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <span class="text-slate-400">Total Pedidos Procesados:</span>
+          <span id="cash-total-orders" class="font-bold text-white">0</span>
+        </div>
+        <div class="flex justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <span class="text-slate-400">Subtotal Ventas:</span>
+          <span id="cash-subtotal" class="font-bold text-white">$0.00</span>
+        </div>
+        <div class="flex justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <span class="text-slate-400">IVA (10%):</span>
+          <span id="cash-tax" class="font-bold text-white">$0.00</span>
+        </div>
+        <div class="flex justify-between bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl">
+          <span class="text-emerald-400 font-bold">Total Ingresos Caja:</span>
+          <span id="cash-total-income" class="font-black text-emerald-400 text-sm">$0.00</span>
+        </div>
+      </div>
+      <button onclick="closeCashCloseModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-xs transition">Cerrar Ventana</button>
+    </div>
+  </div>
+
+  <!-- SCRIPT FIREBASE Y FACTURACIÓN PDF -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, query, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -83,40 +121,51 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    let cachedOrders = [];
 
     const ordersGrid = document.getElementById('kitchen-orders-grid');
     const emptyState = document.getElementById('empty-state');
     const statTotal = document.getElementById('stat-total');
     const statPending = document.getElementById('stat-pending');
-    const statCompleted = document.getElementById('stat-completed');
+    const statSales = document.getElementById('stat-sales');
 
     const q = query(collection(db, "orders"));
     
     onSnapshot(q, (snapshot) => {
       ordersGrid.innerHTML = '';
-      let orders = [];
+      cachedOrders = [];
+      let totalSales = 0;
+      let pendingCount = 0;
       
       snapshot.forEach((docSnap) => {
-        orders.push({ id: docSnap.id, ...docSnap.data() });
+        cachedOrders.push({ id: docSnap.id, ...docSnap.data() });
       });
 
-      if (orders.length === 0) {
+      if (cachedOrders.length === 0) {
         ordersGrid.appendChild(emptyState);
         statTotal.textContent = '0';
         statPending.textContent = '0';
-        statCompleted.textContent = '0';
+        statSales.textContent = '$0.00';
         return;
       }
 
-      statTotal.textContent = orders.length;
-      statPending.textContent = orders.filter(o => o.status === 'pending').length;
-      statCompleted.textContent = orders.filter(o => o.status === 'completed').length;
+      cachedOrders.forEach(order => {
+        if (order.status === 'completed') {
+          totalSales += (order.total || 0);
+        } else {
+          pendingCount++;
+        }
+      });
 
-      orders.forEach(order => {
+      statTotal.textContent = cachedOrders.length;
+      statPending.textContent = pendingCount;
+      statSales.textContent = `$${totalSales.toFixed(2)}`;
+
+      cachedOrders.forEach(order => {
         const card = document.createElement('div');
         const isCompleted = order.status === 'completed';
         
-        card.className = `bg-slate-900 border rounded-3xl p-5 flex flex-col justify-between shadow-xl transition-all ${isCompleted ? 'border-emerald-500/30 opacity-70' : 'border-slate-800'}`;
+        card.className = `bg-slate-900 border rounded-3xl p-5 flex flex-col justify-between shadow-xl transition-all ${isCompleted ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-slate-800'}`;
         
         let itemsHtml = order.items.map(i => `
           <div class="flex justify-between items-center text-xs py-1 border-b border-slate-800/50">
@@ -133,15 +182,13 @@
               </span>
               <span class="text-xs text-slate-500"><i class="fa-regular fa-clock"></i> ${order.time}</span>
             </div>
-            <div class="space-y-1 mb-4">
-              ${itemsHtml}
-            </div>
+            <div class="space-y-1 mb-4">${itemsHtml}</div>
             ${order.notes ? `<div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-[11px] text-amber-300 mb-4"><i class="fa-solid fa-note-sticky"></i> <strong>Nota:</strong> ${order.notes}</div>` : ''}
           </div>
           <div class="flex gap-2 pt-2 border-t border-slate-800">
             ${!isCompleted ? 
-              `<button onclick="completeOrder('${order.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition">Completar</button>` : 
-              `<span class="flex-1 text-center text-emerald-400 text-xs font-bold py-2"><i class="fa-solid fa-check-circle"></i> Entregado</span>`
+              `<button onclick="completeOrder('${order.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition">Completar y Facturar</button>` : 
+              `<button onclick="generateTicketPDF('${order.id}')" class="flex-1 bg-brand-600 hover:bg-brand-500 text-white font-bold py-2 rounded-xl text-xs transition"><i class="fa-solid fa-file-pdf"></i> Imprimir Factura</button>`
             }
             <button onclick="deleteOrder('${order.id}')" class="bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 px-3 py-2 rounded-xl text-xs transition"><i class="fa-solid fa-trash"></i></button>
           </div>
@@ -150,24 +197,94 @@
       });
     });
 
-    // Exponer funciones globalmente para que el HTML onclick las reconozca
     window.completeOrder = async function(orderId) {
       try {
         const orderRef = doc(db, "orders", orderId);
         await updateDoc(orderRef, { status: 'completed' });
+        generateTicketPDF(orderId); // Genera el PDF automáticamente al completar
       } catch (e) {
-        console.error("Error al completar orden:", e);
+        console.error("Error al completar:", e);
       }
     };
 
     window.deleteOrder = async function(orderId) {
-      if (confirm('¿Eliminar este pedido del historial?')) {
+      if (confirm('¿Eliminar este pedido del registro?')) {
         try {
           await deleteDoc(doc(db, "orders", orderId));
         } catch (e) {
-          console.error("Error al eliminar orden:", e);
+          console.error("Error al eliminar:", e);
         }
       }
+    };
+
+    // FUNCIÓN GENERADORA DE TICKET PDF (Estilo factura térmica)
+    window.generateTicketPDF = function(orderId) {
+      const order = cachedOrders.find(o => o.id === orderId);
+      if (!order) return;
+
+      const { jsPDF } = window.jspdf;
+      const docPDF = new jsPDF({ unit: 'mm', format: [80, 160] }); // Formato tipo ticket térmico
+
+      docPDF.setFont("courier", "bold");
+      docPDF.setFontSize(12);
+      docPDF.text("GOURMET TAP", 40, 10, { align: "center" });
+      
+      docPDF.setFont("courier", "normal");
+      docPDF.setFontSize(8);
+      docPDF.text("HAMBURGESERÍA ARTESANAL", 40, 14, { align: "center" });
+      docPDF.text("Tel: 1234-5678 | RUC: 12-3456789-0", 40, 18, { align: "center" });
+      docPDF.text("----------------------------------------", 40, 22, { align: "center" });
+      
+      docPDF.text(`FACTURA: ${order.id}`, 5, 26);
+      docPDF.text(`FECHA: ${new Date().toLocaleDateString()}  MESA: ${order.table}`, 5, 30);
+      docPDF.text(`HORA: ${order.time}`, 5, 34);
+      docPDF.text("----------------------------------------", 40, 38, { align: "center" });
+      
+      docPDF.text("CANT. DESCRIPCION        P.UNIT.  TOTAL", 5, 42);
+      docPDF.text("----------------------------------------", 40, 46, { align: "center" });
+
+      let y = 50;
+      order.items.forEach(i => {
+        const line = `${i.quantity}x   ${i.name.substring(0, 14).padEnd(14)}  $${i.price.toFixed(2)}  $${(i.price * i.quantity).toFixed(2)}`;
+        docPDF.text(line, 5, y);
+        y += 5;
+      });
+
+      docPDF.text("----------------------------------------", 40, y + 2, { align: "center" });
+      const subtotal = order.total / 1.10;
+      const iva = order.total - subtotal;
+
+      docPDF.text(`SUBTOTAL:                      $${subtotal.toFixed(2)}`, 5, y + 6);
+      docPDF.text(`IVA (10%):                     $${iva.toFixed(2)}`, 5, y + 10);
+      
+      docPDF.setFont("courier", "bold");
+      docPDF.setFontSize(10);
+      docPDF.text(`TOTAL:                         $${order.total.toFixed(2)}`, 5, y + 16);
+      
+      docPDF.setFont("courier", "normal");
+      docPDF.setFontSize(8);
+      docPDF.text("----------------------------------------", 40, y + 20, { align: "center" });
+      docPDF.text("¡GRACIAS POR SU COMPRA!", 40, y + 24, { align: "center" });
+
+      docPDF.save(`Factura-${order.id}.pdf`);
+    };
+
+    window.openCashCloseModal = function() {
+      let totalOrders = cachedOrders.filter(o => o.status === 'completed').length;
+      let totalIncome = cachedOrders.filter(o => o.status === 'completed').reduce((acc, o) => acc + (o.total || 0), 0);
+      let subtotal = totalIncome / 1.10;
+      let tax = totalIncome - subtotal;
+
+      document.getElementById('cash-total-orders').textContent = totalOrders;
+      document.getElementById('cash-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+      document.getElementById('cash-tax').textContent = `$${tax.toFixed(2)}`;
+      document.getElementById('cash-total-income').textContent = `$${totalIncome.toFixed(2)}`;
+
+      document.getElementById('cash-modal').classList.remove('opacity-0', 'pointer-events-none');
+    };
+
+    window.closeCashCloseModal = function() {
+      document.getElementById('cash-modal').classList.add('opacity-0', 'pointer-events-none');
     };
   </script>
 </body>
