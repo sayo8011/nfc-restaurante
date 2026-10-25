@@ -152,7 +152,7 @@
           <span class="text-xs text-slate-400">Total:</span>
           <span id="cart-modal-total" class="text-lg font-black text-white">$0.00</span>
         </div>
-        <button onclick="submitOrder()" class="w-full bg-gradient-to-r from-brand-600 to-amber-500 text-white font-extrabold py-3 rounded-xl shadow-lg shadow-brand-500/30 flex items-center justify-center gap-2 text-xs transition active:scale-98">
+        <button id="submit-order-btn" onclick="submitOrder()" class="w-full bg-gradient-to-r from-brand-600 to-amber-500 text-white font-extrabold py-3 rounded-xl shadow-lg shadow-brand-500/30 flex items-center justify-center gap-2 text-xs transition active:scale-98">
           <i class="fa-solid fa-paper-plane"></i> Confirmar y Enviar a Cocina
         </button>
       </div>
@@ -397,66 +397,79 @@
       });
       document.getElementById('cart-modal-total').textContent = `$${total.toFixed(2)}`;
     }
+let isSubmitting = false;
 
-    window.submitOrder = async function() {
-      if (cart.length === 0) return;
+window.submitOrder = async function() {
+  if (cart.length === 0 || isSubmitting) return;
+  isSubmitting = true;
 
-      const orderNotes = document.getElementById('order-notes').value.trim();
-      const clientContact = document.getElementById('client-contact').value.trim();
-      const tableStr = `Mesa ${currentTable}`;
-      
-      const newItems = cart.map(i => ({ name: i.product.name, quantity: i.quantity, price: i.product.price }));
-      const additionalTotal = cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
+  const btn = document.getElementById('submit-order-btn');
+  const btnOriginal = btn.innerHTML;
+  btn.disabled = true;
+  btn.classList.add('opacity-60', 'cursor-not-allowed');
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
 
-      try {
-        const qActive = query(collection(db, "orders"), where("table", "==", tableStr), where("status", "==", "pending"));
-        const querySnapshot = await getDocs(qActive);
+  const orderNotes = document.getElementById('order-notes').value.trim();
+  const clientContact = document.getElementById('client-contact').value.trim();
+  const tableStr = `Mesa ${currentTable}`;
 
-        if (!querySnapshot.empty) {
-          const existingDoc = querySnapshot.docs[0];
-          const existingData = existingDoc.data();
-          const updatedItems = [...existingData.items, ...newItems];
-          const updatedTotal = existingData.total + additionalTotal;
-          const combinedNotes = orderNotes ? (existingData.notes ? `${existingData.notes} / ${orderNotes}` : orderNotes) : existingData.notes;
+  const newItems = cart.map(i => ({ name: i.product.name, quantity: i.quantity, price: i.product.price }));
+  const additionalTotal = cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
 
-          const orderRef = doc(db, "orders", existingDoc.id);
-          await updateDoc(orderRef, {
-            items: updatedItems,
-            total: updatedTotal,
-            notes: combinedNotes,
-            contact: clientContact || existingData.contact
-          });
+  try {
+    const qActive = query(collection(db, "orders"), where("table", "==", tableStr), where("status", "==", "pending"));
+    const querySnapshot = await getDocs(qActive);
 
-        } else {
-          const orderId = 'ORD-' + Math.floor(1000 + Math.random() * 9000);
-          const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (!querySnapshot.empty) {
+      const existingDoc = querySnapshot.docs[0];
+      const existingData = existingDoc.data();
+      const updatedItems = [...existingData.items, ...newItems];
+      const updatedTotal = existingData.total + additionalTotal;
+      const combinedNotes = orderNotes ? (existingData.notes ? `${existingData.notes} / ${orderNotes}` : orderNotes) : existingData.notes;
 
-          const newOrder = {
-            id: orderId,
-            table: tableStr,
-            time: timeStr,
-            items: newItems,
-            notes: orderNotes,
-            contact: clientContact,
-            status: 'pending',
-            total: additionalTotal,
-            createdAt: new Date()
-          };
+      const orderRef = doc(db, "orders", existingDoc.id);
+      await updateDoc(orderRef, {
+        items: updatedItems,
+        total: updatedTotal,
+        notes: combinedNotes,
+        contact: clientContact || existingData.contact
+      });
 
-          await addDoc(collection(db, "orders"), newOrder);
-        }
+    } else {
+      const orderId = 'ORD-' + Math.floor(1000 + Math.random() * 9000);
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        cart = [];
-        document.getElementById('order-notes').value = '';
-        document.getElementById('client-contact').value = '';
-        updateCartUI();
-        closeCartModal();
-        document.getElementById('success-modal').classList.remove('opacity-0', 'pointer-events-none');
-      } catch (e) {
-        console.error("Error al enviar pedido: ", e);
-        alert("Hubo un error al enviar el pedido.");
-      }
-    };
+      const newOrder = {
+        id: orderId,
+        table: tableStr,
+        time: timeStr,
+        items: newItems,
+        notes: orderNotes,
+        contact: clientContact,
+        status: 'pending',
+        total: additionalTotal,
+        createdAt: new Date()
+      };
+
+      await addDoc(collection(db, "orders"), newOrder);
+    }
+
+    cart = [];
+    document.getElementById('order-notes').value = '';
+    document.getElementById('client-contact').value = '';
+    updateCartUI();
+    closeCartModal();
+    document.getElementById('success-modal').classList.remove('opacity-0', 'pointer-events-none');
+  } catch (e) {
+    console.error("Error al enviar pedido: ", e);
+    alert("Hubo un error al enviar el pedido.");
+  } finally {
+    isSubmitting = false;
+    btn.disabled = false;
+    btn.classList.remove('opacity-60', 'cursor-not-allowed');
+    btn.innerHTML = btnOriginal;
+  }
+};
 
     window.closeSuccessModal = function() {
       document.getElementById('success-modal').classList.add('opacity-0', 'pointer-events-none');
