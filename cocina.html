@@ -150,25 +150,25 @@
       });
     });
 
+    // Exponer funciones globalmente para que el HTML onclick las reconozca
     window.completeOrder = async function(orderId) {
-      const orderRef = doc(db, "orders", orderId);
-      await updateDoc(orderRef, { status: 'completed' });
-    }
-
- window.completeOrder = async function(orderId) {
-      const orderRef = doc(db, "orders", orderId);
-      await updateDoc(orderRef, { status: 'completed' });
-    }
+      try {
+        const orderRef = doc(db, "orders", orderId);
+        await updateDoc(orderRef, { status: 'completed' });
+      } catch (e) {
+        console.error("Error al completar orden:", e);
+      }
+    };
 
     window.deleteOrder = async function(orderId) {
       if (confirm('¿Eliminar este pedido del historial?')) {
         try {
           await deleteDoc(doc(db, "orders", orderId));
         } catch (e) {
-          console.error("Error al eliminar:", e);
+          console.error("Error al eliminar orden:", e);
         }
       }
-    }
+    };
   </script>
 </body>
 </html>
